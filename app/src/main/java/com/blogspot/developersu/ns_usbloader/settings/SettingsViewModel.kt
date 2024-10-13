@@ -45,6 +45,15 @@ class SettingsViewModel @Inject constructor(
     var phonePortString by mutableStateOf("6024")
         private set
 
+    var isNsIpError by mutableStateOf(false)
+        private set
+
+    var isPhoneIpError by mutableStateOf(false)
+        private set
+
+    var isPhonePortError by mutableStateOf(false)
+        private set
+
     init {
         viewModelScope.launch {
             val data = dataStore.data.first()
@@ -70,8 +79,9 @@ class SettingsViewModel @Inject constructor(
                     prefs[NS_IP_KEY] = ip
                 }
             }
+            isNsIpError = false
         } else {
-            // TODO Error
+            isNsIpError = true
         }
     }
 
@@ -93,8 +103,9 @@ class SettingsViewModel @Inject constructor(
                     prefs[PHONE_IP_KEY] = phoneIp
                 }
             }
+            isPhoneIpError = false
         } else {
-            // TODO Error
+            isPhoneIpError = true
         }
     }
 
@@ -102,17 +113,18 @@ class SettingsViewModel @Inject constructor(
         phonePortString = portStr
         if (portStr.toIntOrNull() != null) {
             val port = portStr.toInt()
-
             if (port in 1024..65535) {
                 viewModelScope.launch {
                     dataStore.edit { prefs ->
                         prefs[PHONE_PORT_KEY] = port
                     }
                 }
+                isPhonePortError = false
                 return
             }
+
         }
 
-        // TODO Error
+        isPhonePortError = true
     }
 }

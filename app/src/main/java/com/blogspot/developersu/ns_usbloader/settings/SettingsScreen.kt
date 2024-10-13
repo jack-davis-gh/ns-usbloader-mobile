@@ -45,14 +45,17 @@ fun SettingsScreen(
     SettingsScreen(
         modifier = modifier,
         themeSelection = viewModel.themeSelection,
-        onThemeChanged = viewModel::updateThemeSelection,
         nsIpString = viewModel.nsIpString,
-        onNsIpChanged = viewModel::updateNsIp,
         autoIpBool = viewModel.autoIpBool,
-        onAutoIpChanged = viewModel::updateAutoIp,
         phoneIpString = viewModel.phoneIpString,
-        onPhoneIpChanged = viewModel::updatePhoneIp,
         phonePortString = viewModel.phonePortString,
+        isNsIpError = viewModel.isNsIpError,
+        isPhoneIpError = viewModel.isPhoneIpError,
+        isPhonePortError = viewModel.isPhonePortError,
+        onThemeChanged = viewModel::updateThemeSelection,
+        onNsIpChanged = viewModel::updateNsIp,
+        onAutoIpChanged = viewModel::updateAutoIp,
+        onPhoneIpChanged = viewModel::updatePhoneIp,
         onPhonePortChanged = viewModel::updatePort,
         onBackPressed = onBackPressed
     )
@@ -63,14 +66,19 @@ fun SettingsScreen(
 fun SettingsScreen(
     modifier: Modifier = Modifier.fillMaxSize(),
     themeSelection: Int,
-    onThemeChanged: (Int) -> Unit,
     nsIpString: String,
-    onNsIpChanged: (String) -> Unit,
     autoIpBool: Boolean,
-    onAutoIpChanged: (Boolean) -> Unit,
     phoneIpString: String,
-    onPhoneIpChanged: (String) -> Unit,
     phonePortString: String,
+
+    isNsIpError: Boolean,
+    isPhoneIpError: Boolean,
+    isPhonePortError: Boolean,
+
+    onThemeChanged: (Int) -> Unit,
+    onNsIpChanged: (String) -> Unit,
+    onAutoIpChanged: (Boolean) -> Unit,
+    onPhoneIpChanged: (String) -> Unit,
     onPhonePortChanged: (String) -> Unit,
     onBackPressed: () -> Unit
 ) {
@@ -86,9 +94,9 @@ fun SettingsScreen(
                 )
             }
         }) }
-    ) {
+    ) { contentPadding ->
         Column(
-            modifier = modifier.padding(it).padding(10.dp),
+            modifier = modifier.padding(contentPadding).padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             ThemeSelection(
@@ -103,13 +111,13 @@ fun SettingsScreen(
                 fontWeight = FontWeight.Bold
             )
 
-            OutlinedTextField(
+            SettingsTextField(
                 modifier = Modifier.fillMaxWidth(),
                 value = nsIpString,
-                onValueChange = onNsIpChanged,
-                label = { Text(text = stringResource(R.string.settings_nsIp)) },
-                placeholder = { Text(text = "xxx.xxx.xxx.xxx") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                onValueChanged = onNsIpChanged,
+                isError = isNsIpError,
+                label = stringResource(R.string.settings_nsIp),
+                placeholder = "xxx.xxx.xxx.xxx"
             )
 
             Row(
@@ -124,53 +132,48 @@ fun SettingsScreen(
                 )
             }
 
-            OutlinedTextField(
+            SettingsTextField(
                 modifier = Modifier.fillMaxWidth(),
                 value = phoneIpString,
-                onValueChange = onPhoneIpChanged,
-                label = { Text(text = stringResource(R.string.settings_phone_ip)) },
-                placeholder = { Text(text = "xxx.xxx.xxx.xxx") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-            )
-
-            OutlinedTextField(
-                modifier = Modifier.fillMaxWidth(),
-                value = phonePortString,
-                onValueChange = onPhonePortChanged,
-                label = { Text(text = stringResource(R.string.settings_phone_port)) },
-                placeholder = { Text(text = "1024-65535") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                onValueChanged = onPhoneIpChanged,
+                isError = isPhoneIpError,
+                label = stringResource(R.string.settings_phone_ip),
+                placeholder = "xxx.xxx.xxx.xxx",
+                enabled = !autoIpBool
             )
 
             SettingsTextField(
-                state = SettingsTextFieldUiState(
-                    value = phonePortString,
-                    onValueChanged = onPhonePortChanged,
-                ),
+                modifier = Modifier.fillMaxWidth(),
+                value = phonePortString,
+                onValueChanged = onPhonePortChanged,
+                isError = isPhonePortError,
                 label = stringResource(R.string.settings_phone_port),
-                placeholder = "1024-65535",
-                modifier = Modifier.fillMaxWidth()
+                placeholder = "1024-65535"
             )
         }
     }
 }
 
-
-
 @Composable
 private fun SettingsTextField(
-    state: SettingsTextFieldUiState,
+    modifier: Modifier,
+    value: String,
+    onValueChanged: (String) -> Unit,
+    isError: Boolean,
     label: String,
     placeholder: String,
-    modifier: Modifier
+    enabled: Boolean = true
 ) {
     OutlinedTextField(
         modifier = modifier,
-        value = state.value,
-        onValueChange = state.onValueChanged,
+        value = value,
+        onValueChange = onValueChanged,
+        isError = isError,
         label = { Text(text = label) },
         placeholder = { Text(text = placeholder) },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        enabled = enabled
     )
 }
 
@@ -190,18 +193,13 @@ private fun ThemeSelection(
         onExpandedChange = { expanded = it }
     ) {
         OutlinedTextField(
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable).fillMaxWidth(),
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
             value = themeText[themeSelection],
             readOnly = true,
             onValueChange = {},
             singleLine = true,
             label = { Text(stringResource(R.string.settings_app_theme)) },
-            trailingIcon = {
-                ExposedDropdownMenuDefaults.TrailingIcon(
-                    expanded = expanded,
-                    modifier = Modifier.menuAnchor(MenuAnchorType.SecondaryEditable),
-                )
-            },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             colors = ExposedDropdownMenuDefaults.textFieldColors(),
         )
 
@@ -210,10 +208,14 @@ private fun ThemeSelection(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            themeText.forEachIndexed { index, text ->
+            themeText.filter { it != themeText[themeSelection] }.forEach { text ->
                 DropdownMenuItem(
                     text = { Text(text) },
-                    onClick = { onThemeChanged(index) }
+                    onClick = {
+                        expanded = false
+                        onThemeChanged(themeText.indexOf(text))
+                    },
+                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                 )
             }
         }
@@ -225,14 +227,19 @@ private fun ThemeSelection(
 private fun SettingsScreenPreview() {
     SettingsScreen(
         themeSelection = 0,
-        onThemeChanged = {},
         nsIpString = "",
-        onNsIpChanged = {},
         autoIpBool = true,
-        onAutoIpChanged = {},
         phoneIpString = "",
-        onPhoneIpChanged = {},
         phonePortString = "",
+
+        isNsIpError = false,
+        isPhoneIpError = false,
+        isPhonePortError = false,
+
+        onThemeChanged = {},
+        onNsIpChanged = {},
+        onAutoIpChanged = {},
+        onPhoneIpChanged = {},
         onPhonePortChanged = {},
         onBackPressed = {}
     )
