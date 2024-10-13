@@ -52,7 +52,7 @@
         <item>Night theme</item>
     </string-array>
     <string name="settings_application_settings">Application settings</string>
-    <string name="settings_app_theme">Application theme:</string>
+    <string name="settings_app_theme">Application theme</string>
     <string name="about_line_contributors">With contributors:</string>
     <string name="contributors" translatable="false"><a href="https://github.com/htynkn">Huang YunKun</a></string>
 </resources>

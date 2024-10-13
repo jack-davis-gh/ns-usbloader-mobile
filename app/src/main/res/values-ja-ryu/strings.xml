@@ -52,7 +52,7 @@
         <item>ナイトテーマ</item>
     </string-array>
     <string name="settings_application_settings">アプリケーションぬ設定</string>
-    <string name="settings_app_theme">アプリケーションぬテーマ：</string>
+    <string name="settings_app_theme">アプリケーションぬテーマ</string>
     <string name="about_line_contributors">寄稿者とぅまじゅん:</string>
     <string name="contributors" translatable="false"><a href="https://github.com/htynkn">Huang YunKun</a></string>
 </resources>

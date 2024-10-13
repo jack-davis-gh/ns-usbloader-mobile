@@ -8,7 +8,7 @@
     <string name="ns_connected_info">NS Connesso</string>
     <string name="notification_chan_name_usb">Dispositivo connesso</string>
     <string name="settings_application_settings">Impostazioni app</string>
-    <string name="settings_app_theme">Tema app:</string>
+    <string name="settings_app_theme">Tema app</string>
     <string name="settings">Impostazioni</string>
     <string name="title_activity_settings">Impostazioni</string>
     <string name="settings_phone_ip">Indirizzo IP telefono</string>

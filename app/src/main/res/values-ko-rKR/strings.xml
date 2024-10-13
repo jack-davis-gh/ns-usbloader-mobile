@@ -45,6 +45,6 @@
         <item>야간 테마</item>
     </string-array>
     <string name="settings_application_settings">응용 프로그램 설정</string>
-    <string name="settings_app_theme">응용 프로그램 테마:</string>
+    <string name="settings_app_theme">응용 프로그램 테마</string>
     <string name="about_line_contributors">참여자:</string>
 </resources>
