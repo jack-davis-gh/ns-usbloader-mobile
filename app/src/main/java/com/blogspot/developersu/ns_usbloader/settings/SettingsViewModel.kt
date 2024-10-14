@@ -1,10 +1,5 @@
 package com.blogspot.developersu.ns_usbloader.settings
 
-import android.net.InetAddresses
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -14,14 +9,39 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+sealed interface SettingsUiState {
+    data class Success(
+        val appTheme: Int, // TODO fix this, this should be representable via an Object or something, an int is not useful to look at
+        val nsIp: String,
+        val autoIp: Boolean,
+        val phoneIp: String,
+        val phonePort: Int,
+    ): SettingsUiState
+    data object Loading: SettingsUiState
+}
+
+interface SettingsPrefsUpdateCallback {
+    companion object {
+        val Empty = object : SettingsPrefsUpdateCallback {}
+    }
+    fun updateThemeSelection(selection: Int) {}
+    fun updateNsIp(ip: String) {}
+    fun updateAutoIp(autoIp: Boolean) {}
+    fun updatePhoneIp(phoneIp: String) {}
+    fun updatePhonePort(phonePort: Int) {}
+}
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val dataStore: DataStore<Preferences>
-): ViewModel() {
+): ViewModel(), SettingsPrefsUpdateCallback {
     companion object {
         val APP_THEME = intPreferencesKey("APP_THEME")
         val NS_IP_KEY = stringPreferencesKey("NS_IP")
@@ -30,101 +50,59 @@ class SettingsViewModel @Inject constructor(
         val PHONE_PORT_KEY = intPreferencesKey("PHONE_PORT")
     }
 
-    var themeSelection by mutableIntStateOf(0)
-        private set
+    val state: StateFlow<SettingsUiState> = dataStore.data.map { prefs ->
+        SettingsUiState.Success(
+            appTheme = prefs[APP_THEME] ?: 0,
+            nsIp = prefs[NS_IP_KEY] ?: "192.168.1.42",
+            autoIp = prefs[AUTO_IP_KEY] ?: true,
+            phoneIp = prefs[PHONE_IP_KEY] ?: "192.168.1.142",
+            phonePort = prefs[PHONE_PORT_KEY] ?: 6024
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = SettingsUiState.Loading
+    )
 
-    var nsIpString by mutableStateOf("192.168.1.42")
-        private set
-
-    var autoIpBool by mutableStateOf(true)
-        private set
-
-    var phoneIpString by mutableStateOf("192.168.1.142")
-        private set
-
-    var phonePortString by mutableStateOf("6024")
-        private set
-
-    var isNsIpError by mutableStateOf(false)
-        private set
-
-    var isPhoneIpError by mutableStateOf(false)
-        private set
-
-    var isPhonePortError by mutableStateOf(false)
-        private set
-
-    init {
-        viewModelScope.launch {
-            val data = dataStore.data.first()
-            data[APP_THEME]?.let { themeSelection = it }
-            data[NS_IP_KEY]?.let { nsIpString = it }
-            data[AUTO_IP_KEY]?.let { autoIpBool = it }
-            data[PHONE_IP_KEY]?.let { phoneIpString = it }
-            data[PHONE_PORT_KEY]?.let { phonePortString = it.toString() }
+    val updateCallbacks = object : SettingsPrefsUpdateCallback {
+        override fun updateThemeSelection(selection: Int) {
+            viewModelScope.launch {
+                dataStore.edit { prefs ->
+                    prefs[APP_THEME] = selection
+                }
+            }
         }
-    }
 
-    fun updateThemeSelection(selection: Int) {
-        if (selection in 0..2) {
-            themeSelection = selection
-        }
-    }
-
-    fun updateNsIp(ip: String) {
-        nsIpString = ip
-        if (InetAddresses.isNumericAddress(ip)) {
+        override fun updateNsIp(ip: String) {
             viewModelScope.launch {
                 dataStore.edit { prefs ->
                     prefs[NS_IP_KEY] = ip
                 }
             }
-            isNsIpError = false
-        } else {
-            isNsIpError = true
         }
-    }
 
-    fun updateAutoIp(autoIp: Boolean) {
-        autoIpBool = autoIp
-        viewModelScope.launch {
-            dataStore.edit { prefs ->
-                prefs[AUTO_IP_KEY] = autoIp
+        override fun updateAutoIp(autoIp: Boolean) {
+            viewModelScope.launch {
+                dataStore.edit { prefs ->
+                    prefs[AUTO_IP_KEY] = autoIp
+                }
             }
         }
-    }
 
-    fun updatePhoneIp(phoneIp: String) {
-        phoneIpString = phoneIp
-
-        if (InetAddresses.isNumericAddress(phoneIp)) {
+        override fun updatePhoneIp(phoneIp: String) {
             viewModelScope.launch {
                 dataStore.edit { prefs ->
                     prefs[PHONE_IP_KEY] = phoneIp
                 }
             }
-            isPhoneIpError = false
-        } else {
-            isPhoneIpError = true
         }
-    }
 
-    fun updatePort(portStr: String) {
-        phonePortString = portStr
-        if (portStr.toIntOrNull() != null) {
-            val port = portStr.toInt()
-            if (port in 1024..65535) {
-                viewModelScope.launch {
-                    dataStore.edit { prefs ->
-                        prefs[PHONE_PORT_KEY] = port
-                    }
+        override fun updatePhonePort(port: Int) {
+            viewModelScope.launch {
+                dataStore.edit { prefs ->
+                    prefs[PHONE_PORT_KEY] = port
                 }
-                isPhonePortError = false
-                return
             }
-
         }
-
-        isPhonePortError = true
     }
 }

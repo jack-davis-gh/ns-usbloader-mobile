@@ -1,18 +1,22 @@
 package com.blogspot.developersu.ns_usbloader.settings
 
+import android.net.InetAddresses
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MenuAnchorType
@@ -22,6 +26,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,55 +36,43 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.blogspot.developersu.ns_usbloader.R
+import com.blogspot.developersu.ns_usbloader.settings.SettingsViewModel.Companion.APP_THEME
+import com.blogspot.developersu.ns_usbloader.settings.SettingsViewModel.Companion.AUTO_IP_KEY
+import com.blogspot.developersu.ns_usbloader.settings.SettingsViewModel.Companion.NS_IP_KEY
+import com.blogspot.developersu.ns_usbloader.settings.SettingsViewModel.Companion.PHONE_IP_KEY
+import com.blogspot.developersu.ns_usbloader.settings.SettingsViewModel.Companion.PHONE_PORT_KEY
+import com.blogspot.developersu.ns_usbloader.ui.theme.ThemePreviews
+import com.blogspot.developersu.ns_usbloader.ui.theme.AppTheme
 
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier.fillMaxSize(),
-    viewModel: SettingsViewModel,
+    viewModel: SettingsViewModel = hiltViewModel(),
     onBackPressed: () -> Unit
 ) {
+    val uiState: SettingsUiState by viewModel.state.collectAsStateWithLifecycle()
     SettingsScreen(
         modifier = modifier,
-        themeSelection = viewModel.themeSelection,
-        nsIpString = viewModel.nsIpString,
-        autoIpBool = viewModel.autoIpBool,
-        phoneIpString = viewModel.phoneIpString,
-        phonePortString = viewModel.phonePortString,
-        isNsIpError = viewModel.isNsIpError,
-        isPhoneIpError = viewModel.isPhoneIpError,
-        isPhonePortError = viewModel.isPhonePortError,
-        onThemeChanged = viewModel::updateThemeSelection,
-        onNsIpChanged = viewModel::updateNsIp,
-        onAutoIpChanged = viewModel::updateAutoIp,
-        onPhoneIpChanged = viewModel::updatePhoneIp,
-        onPhonePortChanged = viewModel::updatePort,
+        state = uiState,
+        callback = viewModel.updateCallbacks,
         onBackPressed = onBackPressed
     )
 }
+
+internal fun String.isStringIpAddress() = InetAddresses.isNumericAddress(this)
+private fun Int.isPhonePort()
+    = this in 1024..65535
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier.fillMaxSize(),
-    themeSelection: Int,
-    nsIpString: String,
-    autoIpBool: Boolean,
-    phoneIpString: String,
-    phonePortString: String,
-
-    isNsIpError: Boolean,
-    isPhoneIpError: Boolean,
-    isPhonePortError: Boolean,
-
-    onThemeChanged: (Int) -> Unit,
-    onNsIpChanged: (String) -> Unit,
-    onAutoIpChanged: (Boolean) -> Unit,
-    onPhoneIpChanged: (String) -> Unit,
-    onPhonePortChanged: (String) -> Unit,
+    state: SettingsUiState,
+    callback: SettingsPrefsUpdateCallback = SettingsPrefsUpdateCallback.Empty,
     onBackPressed: () -> Unit
 ) {
     Scaffold(
@@ -95,92 +88,87 @@ fun SettingsScreen(
             }
         }) }
     ) { contentPadding ->
-        Column(
-            modifier = modifier.padding(contentPadding).padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            ThemeSelection(
-                themeSelection = themeSelection,
-                onThemeChanged = onThemeChanged
-            )
-
-            Text(
-                modifier = Modifier.fillMaxWidth().padding(top = 3.dp, bottom = 3.dp),
-                text = stringResource(R.string.tf_net),
-                fontStyle = FontStyle.Italic,
-                fontWeight = FontWeight.Bold
-            )
-
-            SettingsTextField(
-                modifier = Modifier.fillMaxWidth(),
-                value = nsIpString,
-                onValueChanged = onNsIpChanged,
-                isError = isNsIpError,
-                label = stringResource(R.string.settings_nsIp),
-                placeholder = "xxx.xxx.xxx.xxx"
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = stringResource(R.string.settings_autodtct_phn_ip))
-                Switch(
-                    checked = autoIpBool,
-                    onCheckedChange = onAutoIpChanged
-                )
+        when(state) {
+            SettingsUiState.Loading -> {
+                Box(
+                    modifier = Modifier.padding(contentPadding).fillMaxSize()
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(200.dp).align(Alignment.Center),
+                        strokeWidth = 10.dp
+                    )
+                }
             }
+            is SettingsUiState.Success -> {
+                Column(
+                    modifier = modifier.padding(contentPadding).padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    ThemeSelection(
+                        modifier = Modifier.fillMaxWidth(),
+                        themeSelection = state.appTheme,
+                        onThemeChanged = callback::updateThemeSelection
+                    )
 
-            SettingsTextField(
-                modifier = Modifier.fillMaxWidth(),
-                value = phoneIpString,
-                onValueChanged = onPhoneIpChanged,
-                isError = isPhoneIpError,
-                label = stringResource(R.string.settings_phone_ip),
-                placeholder = "xxx.xxx.xxx.xxx",
-                enabled = !autoIpBool
-            )
+                    Text(
+                        modifier = Modifier.fillMaxWidth().padding(top = 36.dp, bottom = 0.dp),
+                        text = stringResource(R.string.tf_net),
+                        fontStyle = FontStyle.Italic,
+                        fontWeight = FontWeight.Bold
+                    )
 
-            SettingsTextField(
-                modifier = Modifier.fillMaxWidth(),
-                value = phonePortString,
-                onValueChanged = onPhonePortChanged,
-                isError = isPhonePortError,
-                label = stringResource(R.string.settings_phone_port),
-                placeholder = "1024-65535"
-            )
+                    SettingsTextNumberField(
+                        modifier = Modifier.fillMaxWidth(),
+                        initialValue = state.nsIp,
+                        isValid = String::isStringIpAddress,
+                        onValidUpdate = callback::updateNsIp,
+                        errorText = "Invalid IP",
+                        label = stringResource(R.string.settings_nsIp),
+                        placeholder = "xxx.xxx.xxx.xxx"
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp).padding(top = 30.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = stringResource(R.string.settings_autodtct_phn_ip))
+                        Switch(
+                            checked = state.autoIp,
+                            onCheckedChange = callback::updateAutoIp
+                        )
+                    }
+
+                    SettingsTextNumberField(
+                        modifier = Modifier.fillMaxWidth(),
+                        initialValue = state.phoneIp,
+                        onValidUpdate = callback::updatePhoneIp,
+                        isValid = String::isStringIpAddress,
+                        errorText = "Invalid IP",
+                        label = stringResource(R.string.settings_phone_ip),
+                        placeholder = "xxx.xxx.xxx.xxx",
+                        enabled = !state.autoIp
+                    )
+
+                    SettingsTextNumberField(
+                        modifier = Modifier.fillMaxWidth(),
+                        initialValue = state.phonePort.toString(),
+                        onValidUpdate = { callback.updatePhonePort(it.toInt()) },
+                        isValid = { it.toIntOrNull()?.isPhonePort() ?: false },
+                        errorText = "Invalid Port, 1024 <= port <= 65535",
+                        label = stringResource(R.string.settings_phone_port),
+                        placeholder = "1024-65535"
+                    )
+                }
+            }
         }
     }
-}
-
-@Composable
-private fun SettingsTextField(
-    modifier: Modifier,
-    value: String,
-    onValueChanged: (String) -> Unit,
-    isError: Boolean,
-    label: String,
-    placeholder: String,
-    enabled: Boolean = true
-) {
-    OutlinedTextField(
-        modifier = modifier,
-        value = value,
-        onValueChange = onValueChanged,
-        isError = isError,
-        label = { Text(text = label) },
-        placeholder = { Text(text = placeholder) },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        enabled = enabled
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ThemeSelection(
-    modifier: Modifier = Modifier.fillMaxWidth(),
+    modifier: Modifier = Modifier,
     themeSelection: Int,
     onThemeChanged: (Int) -> Unit
 ) {
@@ -222,25 +210,21 @@ private fun ThemeSelection(
     }
 }
 
-@Preview
+
+@ThemePreviews
 @Composable
 private fun SettingsScreenPreview() {
-    SettingsScreen(
-        themeSelection = 0,
-        nsIpString = "",
-        autoIpBool = true,
-        phoneIpString = "",
-        phonePortString = "",
-
-        isNsIpError = false,
-        isPhoneIpError = false,
-        isPhonePortError = false,
-
-        onThemeChanged = {},
-        onNsIpChanged = {},
-        onAutoIpChanged = {},
-        onPhoneIpChanged = {},
-        onPhonePortChanged = {},
-        onBackPressed = {}
-    )
+    AppTheme {
+        SettingsScreen(
+//            state = SettingsUiState.Success(
+//                appTheme = 0,
+//                nsIp = "192.168.1.42",
+//                autoIp = true,
+//                phoneIp = "192.168.1.142",
+//                phonePort = 6024
+//            ),
+            state = SettingsUiState.Loading,
+            onBackPressed = {}
+        )
+    }
 }

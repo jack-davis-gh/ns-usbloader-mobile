@@ -23,14 +23,6 @@
         android:supportsPictureInPicture="true"
         tools:ignore="GoogleAppIndexingWarning">  <!-- <- IDK WTF, RTFM MB -->
         <activity
-            android:name=".settings.SettingsActivity"
-            android:label="@string/title_activity_settings"
-            android:theme="@style/AppTheme.NoActionBar" />
-        <activity
-            android:name=".about.AboutActivity"
-            android:label="@string/title_activity_about"
-            android:theme="@style/AppTheme.NoActionBar" />
-        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"

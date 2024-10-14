@@ -1,5 +1,8 @@
 package com.blogspot.developersu.ns_usbloader.about
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -19,9 +22,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat.startActivity
 import com.blogspot.developersu.ns_usbloader.R
 
 sealed interface DonateUiClick {
@@ -34,9 +39,19 @@ sealed interface DonateUiClick {
 @Composable
 fun AboutScreen(
     modifier: Modifier = Modifier.fillMaxSize(),
-    onBackPressed: () -> Unit,
-    onDonatePressed: (DonateUiClick) -> Unit
+    onBackPressed: () -> Unit
 ) {
+    fun openDonateLink(context: Context, url: String) = startActivity(
+        context,
+        Intent().apply {
+            action = Intent.ACTION_VIEW
+            addCategory(Intent.CATEGORY_BROWSABLE)
+            data = Uri.parse(url)
+        },
+        null
+    )
+
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -144,12 +159,13 @@ fun AboutScreen(
                 // TODO textAppearance="@style/TextAppearance.AppCompat.Body1"
             )
 
+            val context = LocalContext.current
             Image(
                 modifier = Modifier
                     .width(200.dp)
                     .align(Alignment.CenterHorizontally)
                     .padding(10.dp)
-                    .clickable { onDonatePressed(DonateUiClick.Liberapay) },
+                    .clickable { openDonateLink(context, "https://liberapay.com/developersu/donate") },
                 painter = painterResource(R.drawable.ic_donate_libera),
                 contentDescription = "Donate Liberapay"
             )
@@ -159,7 +175,7 @@ fun AboutScreen(
                     .width(200.dp)
                     .align(Alignment.CenterHorizontally)
                     .padding(10.dp)
-                    .clickable { onDonatePressed(DonateUiClick.Paypal) },
+                    .clickable { openDonateLink(context, "https://www.paypal.me/developersu") },
                 painter = painterResource(R.drawable.ic_donate_paypal),
                 contentDescription = "Donate Paypal"
             )
@@ -169,7 +185,7 @@ fun AboutScreen(
                     .width(200.dp)
                     .align(Alignment.CenterHorizontally)
                     .padding(10.dp)
-                    .clickable { onDonatePressed(DonateUiClick.Yandex) },
+                    .clickable { openDonateLink(context, "https://money.yandex.ru/to/410014301951665") },
                 painter = painterResource(R.drawable.ic_donate_yandex),
                 contentDescription = "Donate Yandex Money"
             )

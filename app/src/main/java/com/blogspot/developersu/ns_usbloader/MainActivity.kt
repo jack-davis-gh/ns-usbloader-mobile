@@ -1,12 +1,27 @@
 package com.blogspot.developersu.ns_usbloader
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.blogspot.developersu.ns_usbloader.about.AboutScreen
+import com.blogspot.developersu.ns_usbloader.home.HomeScreen
+import com.blogspot.developersu.ns_usbloader.home.HomeViewModel
+import com.blogspot.developersu.ns_usbloader.model.Protocol
+import com.blogspot.developersu.ns_usbloader.settings.SettingsScreen
+import com.blogspot.developersu.ns_usbloader.ui.theme.AppTheme
+import dagger.hilt.android.AndroidEntryPoint
+import io.github.vinceglb.filekit.core.FileKit
+import kotlinx.serialization.Serializable
 
 // TODO: add ImageAsset for notification icon instead of SVG-like
 // TODO NOTE: If service execution has been finished in background, then no UI updates will come
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() { // , NsResultReciever.Receiver,
 //    NavigationView.OnNavigationItemSelectedListener {
 //    private var recyclerView: RecyclerView? = null
@@ -21,8 +36,6 @@ class MainActivity : AppCompatActivity() { // , NsResultReciever.Receiver,
 //    private var selectBtn: Button? = null
 //    private var uploadToNsBtn: Button? = null
 //    private var progressBarMain: ProgressBar? = null
-//
-//    private var drawerNavView: NavigationView? = null
 //
 //    private var nsResultReciever: NsResultReciever? = null
 //
@@ -125,31 +138,37 @@ class MainActivity : AppCompatActivity() { // , NsResultReciever.Receiver,
 //        return true
 //    }
 
+
+
+    @Serializable
+    data object HomeUi
+    @Serializable
+    data object SettingsUi
+    @Serializable
+    data object AboutUi
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val viewModel: MainViewModel by viewModels()
+        FileKit.init(this)
+        enableEdgeToEdge()
         setContent {
-            MainScreen(viewModel)
+            AppTheme {
+                val navController = rememberNavController()
+
+                NavHost(navController = navController, startDestination = HomeUi) {
+                    composable<HomeUi> {
+                        HomeScreen(
+                            onNavigateToSettings = { navController.navigate(route = SettingsUi) },
+                            onNavigateToAbout = { navController.navigate(route = AboutUi) }
+                        )
+                    }
+                    composable<SettingsUi> { SettingsScreen(onBackPressed = { navController.popBackStack() }) }
+                    composable<AboutUi> { AboutScreen(onBackPressed = { navController.popBackStack() }) }
+                }
+            }
         }
     }
 //    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        setContentView(R.layout.activity_main)
-//        // Initialize ToolBar
-//        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-//        setSupportActionBar(toolbar)
-//
-//        val drawer = findViewById<DrawerLayout>(R.id.drawer_layout)
-//        drawerNavView = findViewById(R.id.nav_view)
-//        val toggle = ActionBarDrawerToggle(
-//            this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close
-//        )
-//        drawer.addDrawerListener(toggle)
-//        toggle.syncState()
-//        drawerNavView?.setNavigationItemSelectedListener(this)
-//        // Initialize Progress Bar
-//        progressBarMain = findViewById(R.id.mainProgressBar)
-//        // Configure data set in case it's restored from screen rotation or something
 //        if (savedInstanceState != null) {
 //            mDataset = savedInstanceState.getParcelableArrayList("DATASET_LIST")
 //            // Restore USB device information
@@ -190,9 +209,6 @@ class MainActivity : AppCompatActivity() { // , NsResultReciever.Receiver,
 //                NsResultReciever(Handler()) // We will set callback in onResume and unset onPause
 //        }
 //
-//        recyclerView = findViewById(R.id.recyclerView)
-//        val layoutManager: RecyclerView.LayoutManager = LinearLayoutManager(this)
-//        recyclerView?.setLayoutManager(layoutManager)
 //        mAdapter = NspItemsAdapter(mDataset!!)
 //        recyclerView?.setAdapter(mAdapter)
 //        this.setSwipeFunctionsToView()
