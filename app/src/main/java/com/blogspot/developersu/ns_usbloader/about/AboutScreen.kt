@@ -29,12 +29,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.startActivity
 import com.blogspot.developersu.ns_usbloader.R
 
-sealed interface DonateUiClick {
-    data object Liberapay: DonateUiClick
-    data object Paypal: DonateUiClick
-    data object Yandex: DonateUiClick
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(

@@ -1,18 +1,14 @@
 package com.blogspot.developersu.ns_usbloader
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.blogspot.developersu.ns_usbloader.about.AboutScreen
 import com.blogspot.developersu.ns_usbloader.home.HomeScreen
-import com.blogspot.developersu.ns_usbloader.home.HomeViewModel
-import com.blogspot.developersu.ns_usbloader.model.Protocol
 import com.blogspot.developersu.ns_usbloader.settings.SettingsScreen
 import com.blogspot.developersu.ns_usbloader.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -23,9 +19,6 @@ import kotlinx.serialization.Serializable
 // TODO NOTE: If service execution has been finished in background, then no UI updates will come
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() { // , NsResultReciever.Receiver,
-//    NavigationView.OnNavigationItemSelectedListener {
-//    private var recyclerView: RecyclerView? = null
-//    private var mAdapter: NspItemsAdapter? = null
 //    private var mDataset: ArrayList<NSPElement>? = null
 //
 //    private var innerBroadcastReceiver: BroadcastReceiver? = null
@@ -84,61 +77,6 @@ class MainActivity : AppCompatActivity() { // , NsResultReciever.Receiver,
 //        preferencesEditor.apply()
 //        nsResultReciever!!.setReceiver(null)
 //    }
-//
-//    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-//        menuInflater.inflate(R.menu.activity_main_toolbar, menu)
-//        val selectAllBtn = menu.findItem(R.id.select_all)
-//        selectAllBtn.setOnMenuItemClickListener { menuItem: MenuItem? ->
-//            if (drawerNavView!!.checkedItem != null) {
-//                if (drawerNavView!!.checkedItem!!.itemId == R.id.nav_gl) Snackbar.make(
-//                    findViewById(
-//                        android.R.id.content
-//                    ), getString(R.string.one_item_for_gl_notification), Snackbar.LENGTH_LONG
-//                ).show()
-//                else {
-//                    if (mDataset!!.isEmpty()) return@setOnMenuItemClickListener true
-//                    for (element in mDataset!!) {
-//                        element.isSelected = true
-//                    }
-//                    mAdapter!!.notifyDataSetChanged()
-//                }
-//            }
-//            true
-//        }
-//        return true
-//    }
-//
-//    //*/
-//    // Handle back button push when drawer opened
-//    override fun onBackPressed() {
-//        val drawer = findViewById<DrawerLayout>(R.id.drawer_layout)
-//        if (drawer.isDrawerOpen(GravityCompat.START)) drawer.closeDrawer(GravityCompat.START)
-//        else super.onBackPressed()
-//    }
-//
-//    // Drawer actions
-//    override fun onNavigationItemSelected(item: MenuItem): Boolean {
-//        // Handle navigation view item clicks here.
-//        val itemId = item.itemId
-//        if (itemId == R.id.nav_gl) {
-//            if (!mDataset!!.isEmpty()) {
-//                for (element in mDataset!!) element.isSelected = false
-//                mAdapter!!.notifyDataSetChanged()
-//            }
-//        } else if (itemId == R.id.nav_settings) {
-//            startActivity(Intent(this, SettingsActivity::class.java))
-//        } else if (itemId == R.id.nav_about) {
-//            startActivity(Intent(this, AboutActivity::class.java))
-//        }
-//
-//        //case R.id.nav_tf_usb:
-//        //case R.id.nav_tf_net:
-//        val drawer = findViewById<DrawerLayout>(R.id.drawer_layout)
-//        drawer.closeDrawer(GravityCompat.START)
-//        return true
-//    }
-
-
 
     @Serializable
     data object HomeUi

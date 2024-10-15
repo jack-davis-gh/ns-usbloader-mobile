@@ -1,6 +1,6 @@
 package com.blogspot.developersu.ns_usbloader.home
 
-import androidx.activity.compose.rememberLauncherForActivityResult
+import android.net.Uri
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
@@ -26,23 +29,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.blogspot.developersu.ns_usbloader.MainActivity
 import com.blogspot.developersu.ns_usbloader.R
 import com.blogspot.developersu.ns_usbloader.model.Protocol
 import com.blogspot.developersu.ns_usbloader.ui.theme.AppTheme
@@ -50,6 +50,7 @@ import com.blogspot.developersu.ns_usbloader.ui.theme.ThemePreviews
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
+import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.launch
 
 @Composable
@@ -60,6 +61,9 @@ fun HomeScreen(
 ) {
     HomeScreen(
         activeProtocol = viewModel.activeProtocol,
+        fileUris = viewModel.fileUris,
+        addFileUri = viewModel::addFileUri,
+        onProtocolChanged = viewModel::updateActiveProtocol,
         onNavigateToSettings = onNavigateToSettings,
         onNavigateToAbout = onNavigateToAbout
     )
@@ -69,28 +73,32 @@ fun HomeScreen(
 @Composable
 fun HomeScreen(
     activeProtocol: Protocol,
+    fileUris: List<Uri>,
+    onProtocolChanged: (Protocol) -> Unit,
     onNavigateToSettings: () -> Unit = {},
-    onNavigateToAbout: () -> Unit = {}
+    onNavigateToAbout: () -> Unit = {},
+    addFileUri: (Uri) -> Unit = {}
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
 
     val launcher = rememberFilePickerLauncher(
         type = PickerType.File(extensions = listOf("nsp", "xci")),
         mode = PickerMode.Single,
         title = "Pick a rom"
     ) { files ->
-        // Handle the picked files
-        scope.launch {
-            snackbarHostState.showSnackbar("${files?.uri}")
-        }
+        files?.uri?.let { addFileUri(it) }
     }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            HomeScreenDrawer(activeProtocol = activeProtocol, onNavigateToSettings = {
+            HomeScreenDrawer(activeProtocol = activeProtocol,
+                onProtocolChanged = {
+                    onProtocolChanged(it)
+                    scope.launch { drawerState.close() }
+                },
+                onNavigateToSettings = {
                     onNavigateToSettings()
                     scope.launch { drawerState.close() }
                 },
@@ -119,16 +127,46 @@ fun HomeScreen(
                         }
                     }
                 )
-            },
-            snackbarHost = {
-                SnackbarHost(snackbarHostState)
             }
         ) { contentPadding ->
             // Screen content
-            Box(modifier = Modifier.padding(contentPadding)) {
-                Button(
-                    onClick = launcher::launch) {
-                    Text(text = "Show file chooser")
+            Column(modifier = Modifier.padding(contentPadding).fillMaxSize()) {
+                LazyColumn(modifier = Modifier.wrapContentHeight().fillMaxWidth()) {
+                    items(fileUris) { fileUri ->
+                        val platformFile = PlatformFile(fileUri, LocalContext.current)
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            Text(text = platformFile.name)
+                        }
+                    }
+                }
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Button(modifier = Modifier.weight(0.5f), onClick = launcher::launch) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Image(
+                                painter = painterResource(R.drawable.ic_select_file),
+                                contentDescription = "Select Files Icon"
+                            )
+                            Text(
+                                text = stringResource(R.string.select_file_btn),
+                                color = Color.White
+                            )
+                        }
+                    }
+                    Button(
+                        modifier = Modifier.weight(0.5f),
+                        onClick = launcher::launch
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Image(
+                                painter = painterResource(R.drawable.ic_upload_btn),
+                                contentDescription = "Upload File"
+                            )
+                            Text(
+                                text = stringResource(R.string.upload_btn),
+                                color = Color.White
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -138,6 +176,7 @@ fun HomeScreen(
 @Composable
 private fun HomeScreenDrawer(
     activeProtocol: Protocol,
+    onProtocolChanged: (Protocol) -> Unit,
     onNavigateToSettings: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {}
 ) {
@@ -159,9 +198,9 @@ private fun HomeScreenDrawer(
         ) {
             Text(stringResource(R.string.transfer_protocol))
 
-            DrawerIconText(R.drawable.ic_usb, "USB Icon", R.string.tf_usb, activeProtocol == Protocol.Tinfoil.USB)
-            DrawerIconText(R.drawable.ic_net, "Wifi Icon", R.string.tf_net, activeProtocol == Protocol.Tinfoil.NET)
-            DrawerIconText(R.drawable.ic_usb, "USB Icon", R.string.gl, activeProtocol == Protocol.GoldLeafUSB)
+            DrawerIconText(R.drawable.ic_usb, "USB Icon", R.string.tf_usb, activeProtocol == Protocol.Tinfoil.USB, onClick = { onProtocolChanged(Protocol.Tinfoil.USB) })
+            DrawerIconText(R.drawable.ic_net, "Wifi Icon", R.string.tf_net, activeProtocol == Protocol.Tinfoil.NET, onClick = { onProtocolChanged(Protocol.Tinfoil.NET) })
+            DrawerIconText(R.drawable.ic_usb, "USB Icon", R.string.gl, activeProtocol == Protocol.GoldLeafUSB, onClick = { onProtocolChanged(Protocol.GoldLeafUSB) })
 
             Text(stringResource(R.string.other))
 
@@ -208,7 +247,8 @@ private fun DrawerIconText(
 private fun MainScreenDrawerPreview() {
     AppTheme {
         HomeScreenDrawer(
-            activeProtocol = Protocol.Tinfoil.USB
+            activeProtocol = Protocol.Tinfoil.USB,
+            onProtocolChanged = {}
         )
     }
 }
@@ -218,7 +258,10 @@ private fun MainScreenDrawerPreview() {
 fun MainScreenPreview() {
     AppTheme {
         HomeScreen(
-            activeProtocol = Protocol.Tinfoil.USB
+            activeProtocol = Protocol.Tinfoil.USB,
+            fileUris = emptyList<Uri>(),
+            onProtocolChanged = {},
+            addFileUri = {}
         )
     }
 }
