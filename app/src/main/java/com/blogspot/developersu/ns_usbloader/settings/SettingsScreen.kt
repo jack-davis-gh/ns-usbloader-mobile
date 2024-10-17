@@ -209,14 +209,14 @@ private fun ThemeSelection(
 private fun SettingsScreenPreview() {
     AppTheme {
         SettingsScreen(
-//            state = SettingsUiState.Success(
-//                appTheme = 0,
-//                nsIp = "192.168.1.42",
-//                autoIp = true,
-//                phoneIp = "192.168.1.142",
-//                phonePort = 6024
-//            ),
-            state = SettingsUiState.Loading,
+            state = SettingsUiState.Success(
+                appTheme = 0,
+                nsIp = "192.168.1.42",
+                autoIp = true,
+                phoneIp = "192.168.1.142",
+                phonePort = 6024
+            ),
+//            state = SettingsUiState.Loading,
             onBackPressed = {}
         )
     }

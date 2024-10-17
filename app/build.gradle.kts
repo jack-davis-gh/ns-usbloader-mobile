@@ -1,10 +1,11 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.compose")
-    id("com.google.dagger.hilt.android")
-    id("com.google.devtools.ksp")
-    id("org.jetbrains.kotlin.plugin.serialization")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kotlin.parcelize)
 }
 
 android {
@@ -44,36 +45,42 @@ android {
 
 dependencies {
 //    implementation(fileTree(dir: "libs", include: ["*.jar"]))
-    implementation(platform("androidx.compose:compose-bom:2024.09.03"))
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.ui:ui-text-google-fonts:1.7.3")
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    implementation("androidx.activity:activity-compose:1.9.2")
+    implementation(platform(libs.compose.bom))
+    implementation(libs.material3)
+    implementation(libs.ui.tooling.preview)
+    implementation(libs.ui.google.fonts)
+    debugImplementation(libs.ui.tooling)
+    implementation(libs.activity.compose)
     // Optional - Integration with ViewModels
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.datastore.preferences)
 
-    implementation("androidx.navigation:navigation-compose:2.8.2")
-    implementation("androidx.hilt:hilt-navigation-fragment:1.2.0")
+    implementation(libs.navigation.compose)
+    implementation(libs.hilt.navigation.fragment)
 
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.core:core-ktx:1.13.1")
+    implementation(libs.accompanist.permissions)
+
+    implementation(libs.appcompat)
+//    implementation(libs.constraintlayout)
+    implementation(libs.core.ktx)
 //    testImplementation("junit:junit:4.13")
 //    androidTestImplementation("androidx.test:runner:1.3.0")
 //    androidTestImplementation("androidx.test.espresso:espresso-core:3.3.0")
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
-    implementation("androidx.cardview:cardview:1.0.0")
-    implementation("com.google.android.material:material:1.12.0")
+//    implementation(libs.recyclerview)
+//    implementation(libs.cardview)
+//    implementation(libs.material)
+    implementation(libs.work.manager)
 
-    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
-    implementation("com.google.dagger:hilt-android:2.52")
-    ksp("com.google.dagger:hilt-android-compiler:2.52")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
+    implementation(libs.hilt.navigation.compose)
+
+    implementation(libs.hilt.android)
+    implementation(libs.hilt.work)
+    ksp(libs.hilt.android.compiler)
+
+    implementation(libs.kotlinx.serialization.json)
+
     // Enables FileKit without Compose dependencies
-    implementation("io.github.vinceglb:filekit-core:0.8.7")
-
+    implementation(libs.filekit.core)
     // Enables FileKit with Composable utilities
-    implementation("io.github.vinceglb:filekit-compose:0.8.7")
+    implementation(libs.filekit.compose)
 }

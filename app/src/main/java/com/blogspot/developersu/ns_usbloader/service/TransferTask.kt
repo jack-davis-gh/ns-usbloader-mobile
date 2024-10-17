@@ -1,5 +1,6 @@
 package com.blogspot.developersu.ns_usbloader.service
 
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -8,7 +9,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.os.ResultReceiver
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.blogspot.developersu.ns_usbloader.MainActivity
@@ -17,7 +17,7 @@ import com.blogspot.developersu.ns_usbloader.R
 import kotlin.concurrent.Volatile
 
 internal abstract class TransferTask(
-    private val resultReceiver: ResultReceiver,
+//    private val resultReceiver: ResultReceiver,
     var context: Context
 ) {
     private var notificationManager: NotificationManager? = null
@@ -51,14 +51,14 @@ internal abstract class TransferTask(
     }
 
     fun resetProgressBar() {
-        resultReceiver.send(NsConstants.NS_RESULT_PROGRESS_INDETERMINATE, Bundle.EMPTY)
+//        resultReceiver.send(NsConstants.NS_RESULT_PROGRESS_INDETERMINATE, Bundle.EMPTY)
         resetNotificationProgressBar()
     }
 
     fun updateProgressBar(currentPosition: Int) {
         val bundle = Bundle()
         bundle.putInt("POSITION", currentPosition)
-        resultReceiver.send(NsConstants.NS_RESULT_PROGRESS_VALUE, bundle)
+//        resultReceiver.send(NsConstants.NS_RESULT_PROGRESS_VALUE, bundle)
         updateNotificationProgressBar(currentPosition)
     }
 
@@ -75,6 +75,7 @@ internal abstract class TransferTask(
         interrupt = true
     }
 
+    @SuppressLint("MissingPermission")
     private fun updateNotificationProgressBar(value: Int) {
         val notify = notificationBuilder.setProgress(100, value, false).setContentText(
             "$value%"
@@ -86,6 +87,7 @@ internal abstract class TransferTask(
         NotificationManagerCompat.from(context).notify(NsConstants.NOTIFICATION_TRANSFER_ID, notify)
     }
 
+    @SuppressLint("MissingPermission")
     private fun resetNotificationProgressBar() {
         val notify = notificationBuilder.setProgress(0, 0, true).setContentText("").build()
 

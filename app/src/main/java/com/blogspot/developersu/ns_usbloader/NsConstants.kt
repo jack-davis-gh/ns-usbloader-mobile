@@ -1,5 +1,7 @@
 package com.blogspot.developersu.ns_usbloader
 
+import kotlinx.serialization.json.Json
+
 object NsConstants {
     const val NS_RESULT_RECEIVER: String = "RECEIVER"
 
@@ -31,4 +33,5 @@ object NsConstants {
     const val NOTIFICATION_FOREGROUND_SERVICE_CHAN_ID: String =
         "com.blogspot.developersu.ns_usbloader.CHAN_ID_FOREGROUND_SERVICE"
     const val NOTIFICATION_TRANSFER_ID: Int = 1
+    val json: Json = Json.Default
 }

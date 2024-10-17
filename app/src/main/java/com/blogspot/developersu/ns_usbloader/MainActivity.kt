@@ -8,12 +8,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.blogspot.developersu.ns_usbloader.about.AboutScreen
+import com.blogspot.developersu.ns_usbloader.about.AboutUi
+import com.blogspot.developersu.ns_usbloader.about.navigateToAbout
 import com.blogspot.developersu.ns_usbloader.home.HomeScreen
+import com.blogspot.developersu.ns_usbloader.home.HomeUi
 import com.blogspot.developersu.ns_usbloader.settings.SettingsScreen
+import com.blogspot.developersu.ns_usbloader.settings.SettingsUi
+import com.blogspot.developersu.ns_usbloader.settings.navigateToSettings
 import com.blogspot.developersu.ns_usbloader.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.vinceglb.filekit.core.FileKit
-import kotlinx.serialization.Serializable
 
 // TODO: add ImageAsset for notification icon instead of SVG-like
 // TODO NOTE: If service execution has been finished in background, then no UI updates will come
@@ -78,13 +82,6 @@ class MainActivity : AppCompatActivity() { // , NsResultReciever.Receiver,
 //        nsResultReciever!!.setReceiver(null)
 //    }
 
-    @Serializable
-    data object HomeUi
-    @Serializable
-    data object SettingsUi
-    @Serializable
-    data object AboutUi
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         FileKit.init(this)
@@ -94,12 +91,7 @@ class MainActivity : AppCompatActivity() { // , NsResultReciever.Receiver,
                 val navController = rememberNavController()
 
                 NavHost(navController = navController, startDestination = HomeUi) {
-                    composable<HomeUi> {
-                        HomeScreen(
-                            onNavigateToSettings = { navController.navigate(route = SettingsUi) },
-                            onNavigateToAbout = { navController.navigate(route = AboutUi) }
-                        )
-                    }
+                    composable<HomeUi> { HomeScreen(navController::navigateToSettings, navController::navigateToAbout) }
                     composable<SettingsUi> { SettingsScreen(onBackPressed = { navController.popBackStack() }) }
                     composable<AboutUi> { AboutScreen(onBackPressed = { navController.popBackStack() }) }
                 }

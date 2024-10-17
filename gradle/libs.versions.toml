@@ -1,0 +1,56 @@
+[versions]
+activity-compose = "1.9.2"
+appcompat = "1.7.0"
+core-ktx = "1.13.1"
+datastore-preferences = "1.1.1"
+filekit-core = "0.8.7"
+hilt-android-compiler = "2.52"
+hilt-navigation-fragment = "1.2.0"
+kotlin = "2.0.21"
+agp = "8.7.1"
+kotlinx-serialization-json = "1.7.1"
+ksp = "2.0.21-1.0.25"
+compose-bom = "2024.09.03"
+hilt = "2.52"
+hilt-work = "1.2.0"
+
+lifecycle-viewmodel-compose = "2.8.6"
+material3 = "1.3.0"
+navigation-compose = "2.8.2"
+ui-text-google-fonts = "1.7.3"
+work-manager = "2.9.1"
+accompanist = "0.36.0"
+
+[libraries]
+activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
+appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
+core-ktx = { module = "androidx.core:core-ktx", version.ref = "core-ktx" }
+datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore-preferences" }
+filekit-compose = { module = "io.github.vinceglb:filekit-compose", version.ref = "filekit-core" }
+filekit-core = { module = "io.github.vinceglb:filekit-core", version.ref = "filekit-core" }
+hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt-android-compiler" }
+hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hilt-navigation-fragment" }
+hilt-navigation-fragment = { module = "androidx.hilt:hilt-navigation-fragment", version.ref = "hilt-navigation-fragment" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
+lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle-viewmodel-compose" }
+material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3"}
+navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigation-compose" }
+ui-google-fonts = { module = "androidx.compose.ui:ui-text-google-fonts", version.ref = "ui-text-google-fonts" }
+ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+work-manager = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work-manager" }
+accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanist" }
+
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hilt-work" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+

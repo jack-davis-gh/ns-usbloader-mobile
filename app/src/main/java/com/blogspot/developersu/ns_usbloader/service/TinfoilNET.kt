@@ -9,7 +9,7 @@ import com.blogspot.developersu.ns_usbloader.service.NETPacket.code404
 import com.blogspot.developersu.ns_usbloader.service.NETPacket.code416
 import com.blogspot.developersu.ns_usbloader.service.NETPacket.getCode200
 import com.blogspot.developersu.ns_usbloader.service.NETPacket.getCode206
-import com.blogspot.developersu.ns_usbloader.view.NSPElement
+import com.blogspot.developersu.ns_usbloader.model.NSFile
 import java.io.BufferedInputStream
 import java.io.BufferedReader
 import java.io.IOException
@@ -29,12 +29,12 @@ import java.util.Locale
 internal class TinfoilNET(
     resultReceiver: ResultReceiver,
     context: Context,
-    nspElements: ArrayList<NSPElement>,
+    nspElements: ArrayList<NSFile>,
     private val nsIp: String,
     private var phoneIp: String,
     private val phonePort: Int
-) : TransferTask(resultReceiver, context) {
-    private val files = HashMap<String, NSPElement>()
+) : TransferTask(context) {
+    private val files = HashMap<String, NSFile>()
 
     private var handShakeSocket: Socket? = null
     private var serverSocket: ServerSocket? = null
@@ -60,7 +60,7 @@ internal class TinfoilNET(
      */
     init {
         // Collect and encode NSP files list
-        for (nspElem in nspElements) files[URLEncoder.encode(nspElem.filename, "UTF-8")
+        for (nspElem in nspElements) files[URLEncoder.encode(nspElem.name, "UTF-8")
             .replace("\\+".toRegex(), "%20")] =
             nspElem // replace + to %20
 
@@ -192,8 +192,8 @@ internal class TinfoilNET(
 
         if (reqFileSize == 0L) {   // well.. tell 404 if file exists with 0 length is against standard, but saves time
             writeToSocket(code404)
-            requestedElement.status =
-                context.resources.getString(R.string.status_failed_to_upload)
+//            requestedElement.status =
+//                context.resources.getString(R.string.status_failed_to_upload)
             return
         }
         if (packet[0].startsWith("HEAD")) {
@@ -212,7 +212,7 @@ internal class TinfoilNET(
 
     @Throws(Exception::class)
     private fun parseGETrange(
-        requestedElement: NSPElement,
+        requestedElement: NSFile,
         fileSize: Long,
         rangeDirective: String
     ) {
@@ -231,8 +231,8 @@ internal class TinfoilNET(
                 val toRange = rangeStr[1].toLong()
                 if (fromRange > toRange) { // If start bytes greater then end bytes
                     writeToSocket(code400)
-                    requestedElement.status =
-                        context.resources.getString(R.string.status_failed_to_upload)
+//                    requestedElement.status =
+//                        context.resources.getString(R.string.status_failed_to_upload)
                     return
                 }
                 writeToSocket(requestedElement, fromRange, toRange)
@@ -241,8 +241,8 @@ internal class TinfoilNET(
 
             if (rangeStr[1].isEmpty()) {
                 writeToSocket(code400) // If Range not defined: like "Range: bytes=-"
-                requestedElement.status =
-                    context.resources.getString(R.string.status_failed_to_upload)
+//                requestedElement.status =
+//                    context.resources.getString(R.string.status_failed_to_upload)
                 return
             }
 
@@ -252,11 +252,11 @@ internal class TinfoilNET(
             }
             // If file smaller than 500 bytes
             writeToSocket(code416)
-            requestedElement.status = context.resources.getString(R.string.status_failed_to_upload)
+//            requestedElement.status = context.resources.getString(R.string.status_failed_to_upload)
         } catch (nfe: NumberFormatException) {
             writeToSocket(code400)
-            requestedElement.status = context.resources.getString(R.string.status_failed_to_upload)
-            throw Exception("NET: Requested range for " + requestedElement.filename + " has incorrect format. Returning 400\n\t" + nfe.message)
+//            requestedElement.status = context.resources.getString(R.string.status_failed_to_upload)
+            throw Exception("NET: Requested range for " + requestedElement.name + " has incorrect format. Returning 400\n\t" + nfe.message)
         }
     }
 
@@ -268,7 +268,7 @@ internal class TinfoilNET(
 
     /** Send files  */
     @Throws(Exception::class)
-    private fun writeToSocket(nspElem: NSPElement, start: Long, end: Long) {
+    private fun writeToSocket(nspElem: NSFile, start: Long, end: Long) {
         if (interrupt) {
             throw Exception("Interrupted by user")
         }
@@ -285,7 +285,7 @@ internal class TinfoilNET(
             var byteBuf: ByteArray
 
             if (bis.skip(start) != start) {
-                nspElem.status = context.resources.getString(R.string.status_failed_to_upload)
+//                nspElem.status = context.resources.getString(R.string.status_failed_to_upload)
                 throw Exception("NET: Unable to skip requested range")
             }
             var currentOffset: Long = 0
@@ -309,8 +309,8 @@ internal class TinfoilNET(
             bis.close()
             resetProgressBar()
         } catch (ioe: IOException) {
-            nspElem.status =
-                context.resources.getString(R.string.status_failed_to_upload) // TODO: REDUNDANT?
+//            nspElem.status =
+//                context.resources.getString(R.string.status_failed_to_upload) // TODO: REDUNDANT?
             throw Exception("NET: File transmission failed. Returned: " + ioe.message)
         }
     }
