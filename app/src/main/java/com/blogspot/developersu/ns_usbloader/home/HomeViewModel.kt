@@ -66,9 +66,10 @@ class HomeViewModel @Inject constructor(
                 .setInputData(inputData)
                 .build()
 
+            workManager.cancelAllWork()
             workManager.enqueueUniqueWork(
                 "USB Transfer",
-                ExistingWorkPolicy.REPLACE,
+                ExistingWorkPolicy.KEEP,
                 request
             )
         }

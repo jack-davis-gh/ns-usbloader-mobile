@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.kotlin.parcelize)
 }
 
 android {
@@ -46,38 +45,37 @@ android {
 dependencies {
 //    implementation(fileTree(dir: "libs", include: ["*.jar"]))
     implementation(platform(libs.compose.bom))
-    implementation(libs.material3)
-    implementation(libs.ui.tooling.preview)
-    implementation(libs.ui.google.fonts)
-    debugImplementation(libs.ui.tooling)
     implementation(libs.activity.compose)
-    // Optional - Integration with ViewModels
-    implementation(libs.lifecycle.viewmodel.compose)
-    implementation(libs.datastore.preferences)
 
+    implementation(libs.material3)
+    implementation(libs.material.icons.extended)
+
+    debugImplementation(libs.ui.tooling)
+    implementation(libs.ui.tooling.preview)
+
+    implementation(libs.ui.google.fonts)
+
+    implementation(libs.datastore.preferences)
+    implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.navigation.compose)
-    implementation(libs.hilt.navigation.fragment)
 
     implementation(libs.accompanist.permissions)
 
     implementation(libs.appcompat)
-//    implementation(libs.constraintlayout)
     implementation(libs.core.ktx)
 //    testImplementation("junit:junit:4.13")
 //    androidTestImplementation("androidx.test:runner:1.3.0")
 //    androidTestImplementation("androidx.test.espresso:espresso-core:3.3.0")
-//    implementation(libs.recyclerview)
-//    implementation(libs.cardview)
-//    implementation(libs.material)
     implementation(libs.work.manager)
 
+    implementation(libs.hilt.navigation.fragment)
     implementation(libs.hilt.navigation.compose)
-
     implementation(libs.hilt.android)
     implementation(libs.hilt.work)
     ksp(libs.hilt.android.compiler)
 
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlin.coroutines)
 
     // Enables FileKit without Compose dependencies
     implementation(libs.filekit.core)

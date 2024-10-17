@@ -1,12 +1,9 @@
 package com.blogspot.developersu.ns_usbloader.model
 
 import android.net.Uri
-import android.os.Parcelable
-import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 import java.util.Locale
 
-@Parcelize
 @Serializable
 data class NSFile(
     val uriString: String,
@@ -14,7 +11,7 @@ data class NSFile(
     val size: Long,
     val status: String = "",
     val isSelected: Boolean = false
-): Parcelable {
+) {
     val uri: Uri
         get() = Uri.parse(uriString)
 

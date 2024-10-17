@@ -21,21 +21,19 @@ import java.nio.ByteOrder
 class TinfoilUsbWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted workerParams: WorkerParameters,
-    @Assisted private val usbTransfer: UsbTransfer,
+    @Assisted private val transfer: UsbTransfer
 ): CoroutineWorker(appContext, workerParams) {
-    private val foregroundInfo = createForegroundInfo()
     private val magicPacket = byteArrayOf(0x54, 0x55, 0x43, 0x30) // eq. 'TUC0' @ UTF-8 (actually ASCII lol, u know what I mean)
 
-    override suspend fun getForegroundInfo(): ForegroundInfo = foregroundInfo
+    override suspend fun getForegroundInfo(): ForegroundInfo = createForegroundInfo()
 
     override suspend fun doWork(): Result {
         val jsonStr = inputData.getString(NsConstants.SERVICE_CONTENT_NSP_LIST) ?: return Result.failure()
         val files: List<NSFile> = json.decodeFromString(jsonStr)
-        setForeground(foregroundInfo)
 
         try {
-            usbTransfer.open()
-
+            transfer.open()
+            setForeground(getForegroundInfo())
             sendListOfNSP(files)
 
 //        if (
@@ -50,7 +48,7 @@ class TinfoilUsbWorker @AssistedInject constructor(
                 .build()
             return Result.failure(outData)
         } finally {
-            usbTransfer.close()
+            transfer.close()
         }
 
         return Result.success()
@@ -67,25 +65,25 @@ class TinfoilUsbWorker @AssistedInject constructor(
 
         // Send list of NSP files:
         // Proceed "TUL0"
-        if (usbTransfer.writeUsb(byteArrayOf(0x54, 0x55, 0x4c, 0x30))) {
+        if (transfer.writeUsb(byteArrayOf(0x54, 0x55, 0x4c, 0x30))) {
             throw Exception("TF Send list of files: handshake failure")
         }
 
         // Sending NSP list
         val nspListPacket = nspListSize + ByteArray(8) // size of the list we're going to transfer goes... + 8 zero bytes goes (Padding)...
-        if (usbTransfer.writeUsb(nspListPacket)) {
+        if (transfer.writeUsb(nspListPacket)) {
             throw Exception("TF Send list of files: [send list length]")
         }
 
-        if (usbTransfer.writeUsb(nspListNames)) { // list of the names goes...
+        if (transfer.writeUsb(nspListNames)) { // list of the names goes...
             throw Exception("TF Send list of files: [send list itself]")
         }
     }
 
     // After we sent commands to NS, this chain starts
     private fun proceedCommands(files: List<NSFile>): Boolean {
-        while (true) {
-            val receivedArray = usbTransfer.readUsb()
+        while (!isStopped) {
+            val receivedArray = transfer.readUsb()
 
             // Bytes from 0 to 3 should contain 'magic' TUC0, so must be verified like this
             if (!receivedArray.copyOfRange(0, 4).contentEquals(magicPacket))
@@ -101,6 +99,7 @@ class TinfoilUsbWorker @AssistedInject constructor(
                 }
             }
         }
+        return false
     }
 
     /**
@@ -111,7 +110,7 @@ class TinfoilUsbWorker @AssistedInject constructor(
      */
     private fun fileRangeCmd(files: List<NSFile>): Boolean {
         // Here we take information of what other side wants
-        val receivedArray = usbTransfer.readUsb()
+        val receivedArray = transfer.readUsb()
 
         // range_offset of the requested file. In the begining it will be 0x10.
         val receivedRangeSize = ByteBuffer.wrap(receivedArray.copyOfRange(0, 8)).order(
@@ -122,7 +121,7 @@ class TinfoilUsbWorker @AssistedInject constructor(
             .order(ByteOrder.LITTLE_ENDIAN).getLong()
 
         // Requesting UTF-8 file name required:
-        val receivedArray2 = usbTransfer.readUsb()
+        val receivedArray2 = transfer.readUsb()
         val receivedRequestedNSP: String = receivedArray2.toString(Charsets.UTF_8)
 
         // Sending response header
@@ -130,7 +129,7 @@ class TinfoilUsbWorker @AssistedInject constructor(
             0x01, 0x00, 0x00, 0x00,  // CMD_TYPE_RESPONSE = 1
             0x01, 0x00, 0x00, 0x00
         ) + receivedRangeSizeRAW + ByteArray(12)
-        usbTransfer.writeUsb(replyArray)
+        transfer.writeUsb(replyArray)
         // Get receivedRangeSize in 'RAW' format exactly as it has been received. It's simply.
 
         try {
@@ -153,7 +152,7 @@ class TinfoilUsbWorker @AssistedInject constructor(
             var readPice = 16384 // 8388608 = 8Mb
 //            var updateProgressPeriods = 0
 
-            while (readFrom < receivedRangeSize) {
+            while (!isStopped && readFrom < receivedRangeSize) {
                 if ((readFrom + readPice) >= receivedRangeSize) readPice =
                     (receivedRangeSize - readFrom).toInt() // TODO: Troubles could raise here
 
@@ -165,7 +164,7 @@ class TinfoilUsbWorker @AssistedInject constructor(
                     return false
                 }
                 //write to USB
-                usbTransfer.writeUsb(readBuf) // Otherwise "TF Failure during NSP transmission."
+                transfer.writeUsb(readBuf) // Otherwise "TF Failure during NSP transmission."
                 readFrom += readPice.toLong()
 
 //                if (updateProgressPeriods++ % 1024 == 0)  // Update progress bar after every 16mb goes to NS
@@ -176,7 +175,7 @@ class TinfoilUsbWorker @AssistedInject constructor(
             bufferedInStream.close()
 
 //            resetProgressBar()
-        } catch (ioe: IOException) {
+        } catch (_: IOException) {
 //            issueDescription = "TF IOException: " + ioe.message
             return false
         }
