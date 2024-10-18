@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -13,10 +14,15 @@ import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import com.blogspot.developersu.ns_usbloader.NsConstants
 import com.blogspot.developersu.ns_usbloader.NsConstants.json
+import com.blogspot.developersu.ns_usbloader.core.data.FileRepo
 import com.blogspot.developersu.ns_usbloader.model.NSFile
 import com.blogspot.developersu.ns_usbloader.model.Protocol
 import com.blogspot.developersu.ns_usbloader.core.work.TinfoilUsbWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.vinceglb.filekit.core.PlatformFile
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import javax.inject.Inject
 
@@ -24,13 +30,15 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val usbManager: UsbManager,
     private val workManager: WorkManager,
+    private val fileRepo: FileRepo
 ): ViewModel() {
 
-    var files by mutableStateOf(emptyList<NSFile>())
-        private set
-
-    private val activeFiles: List<NSFile>
-        get() = files.filter(NSFile::isSelected)
+    val files = fileRepo.getFiles()
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            emptyList()
+        )
 
     var activeProtocol by mutableStateOf<Protocol>(Protocol.Tinfoil.USB)
         private set
@@ -39,39 +47,33 @@ class HomeViewModel @Inject constructor(
         activeProtocol = protocol
     }
 
-    fun selectFileUri(file: NSFile) {
-        if (file !in files) {
-            files += file
-        }
-    }
+    fun onFileUriSelected(file: PlatformFile) = viewModelScope.launch { fileRepo.upsertFile(file) }
 
-    fun onClickFile(file: NSFile) {
-        val oldFiles = files.filter { it.name != file.name }
-        files = oldFiles + file.copy(isSelected = !file.isSelected)
-    }
+    fun onClickFile(file: NSFile) = viewModelScope.launch { fileRepo.upsertFile(file.copy(isSelected = !file.isSelected)) }
 
-    fun uploadFile() {
-        val usbDevice: UsbDevice? = usbManager.deviceList.values
-            .filter { device -> device.vendorId == 1406 && device.productId == 12288 }
-            .firstOrNull()
+    fun uploadFile() = viewModelScope.launch {
+        val usbDevice: UsbDevice? =
+            usbManager.deviceList.values.firstOrNull { device -> device.vendorId == 1406 && device.productId == 12288 }
 
         if (usbDevice != null && usbManager.hasPermission(usbDevice)) {
-            val inputData = Data.Builder()
-                .putString(NsConstants.SERVICE_CONTENT_NSP_LIST,
-                    json.encodeToString(activeFiles))
-                .build()
+            fileRepo.getSelectedFile().collect { activeFiles ->
+                val inputData = Data.Builder()
+                    .putString(NsConstants.SERVICE_CONTENT_NSP_LIST,
+                        json.encodeToString(activeFiles))
+                    .build()
 
-            val request = OneTimeWorkRequestBuilder<TinfoilUsbWorker>()
-                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-                .setInputData(inputData)
-                .build()
+                val request = OneTimeWorkRequestBuilder<TinfoilUsbWorker>()
+                    .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                    .setInputData(inputData)
+                    .build()
 
-            workManager.cancelAllWork()
-            workManager.enqueueUniqueWork(
-                "USB Transfer",
-                ExistingWorkPolicy.KEEP,
-                request
-            )
+                workManager.cancelAllWork()
+                workManager.enqueueUniqueWork(
+                    "USB Transfer",
+                    ExistingWorkPolicy.KEEP,
+                    request
+                )
+            }
         }
     }
 }

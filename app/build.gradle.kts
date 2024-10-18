@@ -81,4 +81,10 @@ dependencies {
     implementation(libs.filekit.core)
     // Enables FileKit with Composable utilities
     implementation(libs.filekit.compose)
+
+    // Room
+    implementation(libs.room.runtime)
+    ksp(libs.room.compiler)
+    implementation(libs.room.ktx)
+    testImplementation(libs.room.testing)
 }

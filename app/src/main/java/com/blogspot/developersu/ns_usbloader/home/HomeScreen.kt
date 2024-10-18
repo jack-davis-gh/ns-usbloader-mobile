@@ -1,6 +1,7 @@
 package com.blogspot.developersu.ns_usbloader.home
 
 import android.annotation.SuppressLint
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,15 +21,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.blogspot.developersu.ns_usbloader.R
 import com.blogspot.developersu.ns_usbloader.model.NSFile
 import com.blogspot.developersu.ns_usbloader.model.Protocol
-import com.blogspot.developersu.ns_usbloader.model.asNSFile
 import com.blogspot.developersu.ns_usbloader.ui.theme.AppTheme
 import com.blogspot.developersu.ns_usbloader.ui.theme.ThemePreviews
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -37,6 +40,7 @@ import com.google.accompanist.permissions.rememberPermissionState
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
+import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.launch
 
 @SuppressLint("InlinedApi")
@@ -47,13 +51,15 @@ fun HomeScreen(
     onAboutClicked: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
+    val files by viewModel.files.collectAsStateWithLifecycle()
     // Notification Permission
+    // TODO fix this isn't the way it was meant to be implemented and if notification perms are revoked the app just breaks
     val notificationState = rememberPermissionState(android.Manifest.permission.POST_NOTIFICATIONS)
     if (notificationState.status.isGranted) {
         HomeScreen(
             activeProtocol = viewModel.activeProtocol,
-            files = viewModel.files,
-            selectFileUri = viewModel::selectFileUri,
+            files = files,
+            onFileUriSelected = viewModel::onFileUriSelected,
             onProtocolChanged = viewModel::updateActiveProtocol,
             onUploadFileClicked = viewModel::uploadFile,
             onSettingsClicked = onSettingsClicked,
@@ -73,7 +79,7 @@ fun HomeScreen(
     onAboutClicked: () -> Unit = {},
     onFileClicked: (NSFile) -> Unit = {},
     onUploadFileClicked: () -> Unit = {},
-    selectFileUri: (NSFile) -> Unit = {}
+    onFileUriSelected: (PlatformFile) -> Unit = {}
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -83,10 +89,9 @@ fun HomeScreen(
     val launcher = rememberFilePickerLauncher(
         type = PickerType.File(extensions = listOf("nsp", "xci")),
         mode = PickerMode.Single,
-        title = "Pick a rom"
-    ) { files ->
-        files?.asNSFile()?.copy(isSelected = true)?.let(selectFileUri)
-    }
+        title = "Pick a rom",
+        onResult = { it?.let(onFileUriSelected) }
+    )
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -101,7 +106,14 @@ fun HomeScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("NS Usb Loader") },
+                    title = {
+                        @StringRes val protoStr: Int = when (activeProtocol) {
+                            Protocol.GoldLeafUSB -> R.string.gl
+                            Protocol.Tinfoil.NET -> R.string.tf_net
+                            Protocol.Tinfoil.USB -> R.string.tf_usb
+                        }
+                        Text(stringResource(protoStr))
+                    },
                     actions = {
                         IconButton(
                             onClick = launcher::launch
@@ -155,7 +167,7 @@ fun HomeScreenPreview() {
     AppTheme {
         HomeScreen(
             activeProtocol = Protocol.Tinfoil.USB,
-            files = emptyList<NSFile>()
+            files = emptyList()
         )
     }
 }
