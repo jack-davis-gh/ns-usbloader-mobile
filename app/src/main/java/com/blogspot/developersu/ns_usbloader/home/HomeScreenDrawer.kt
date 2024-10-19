@@ -25,7 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.blogspot.developersu.ns_usbloader.model.Protocol
+import com.blogspot.developersu.ns_usbloader.core.model.Protocol
 import com.blogspot.developersu.ns_usbloader.R
 import com.blogspot.developersu.ns_usbloader.ui.theme.AppTheme
 import com.blogspot.developersu.ns_usbloader.ui.theme.ThemePreviews
@@ -55,9 +55,12 @@ fun HomeScreenDrawer(
         ) {
             Text(stringResource(R.string.transfer_protocol))
 
-            DrawerIconText(R.drawable.ic_usb, "USB Icon", R.string.tf_usb, activeProtocol == Protocol.Tinfoil.USB, onClick = { onProtocolChanged(Protocol.Tinfoil.USB) })
-            DrawerIconText(R.drawable.ic_net, "Wifi Icon", R.string.tf_net, activeProtocol == Protocol.Tinfoil.NET, onClick = { onProtocolChanged(Protocol.Tinfoil.NET) })
-            DrawerIconText(R.drawable.ic_usb, "USB Icon", R.string.gl, activeProtocol == Protocol.GoldLeafUSB, onClick = { onProtocolChanged(Protocol.GoldLeafUSB) })
+            DrawerIconText(R.drawable.ic_usb, "USB Icon", R.string.tf_usb, activeProtocol == Protocol.Tinfoil.USB, onClick = { onProtocolChanged(
+                Protocol.Tinfoil.USB) })
+            DrawerIconText(R.drawable.ic_net, "Wifi Icon", R.string.tf_net, activeProtocol == Protocol.Tinfoil.NET, onClick = { onProtocolChanged(
+                Protocol.Tinfoil.NET) })
+            DrawerIconText(R.drawable.ic_usb, "USB Icon", R.string.gl, activeProtocol == Protocol.GoldLeafUSB, onClick = { onProtocolChanged(
+                Protocol.GoldLeafUSB) })
 
             Text(stringResource(R.string.other))
 

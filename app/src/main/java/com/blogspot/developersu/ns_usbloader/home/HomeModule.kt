@@ -1,5 +1,6 @@
 package com.blogspot.developersu.ns_usbloader.home
 
+import android.content.ContentResolver
 import android.content.Context
 import android.hardware.usb.UsbManager
 import androidx.work.WorkManager
@@ -21,6 +22,11 @@ internal object HomeModule {
     fun provideWorkManager(
         @ApplicationContext context: Context
     ): WorkManager = WorkManager.getInstance(context)
+
+    @Provides
+    fun provideContentResolver(
+        @ApplicationContext context: Context
+    ): ContentResolver = context.contentResolver
 }
 
 fun Context.getUsbManager() = getSystemService(Context.USB_SERVICE) as UsbManager

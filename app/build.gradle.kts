@@ -21,11 +21,32 @@ android {
         android.defaultConfig.vectorDrawables.useSupportLibrary = true
         vectorDrawables.useSupportLibrary = true
     }
+
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
+    }
+
+    flavorDimensions += "version"
+    productFlavors {
+        create("demo") {
+            // Assigns this product flavor to the "version" flavor dimension.
+            // If you are using only one dimension, this property is optional,
+            // and the plugin automatically assigns all the module's flavors to
+            // that dimension.
+            resourceConfigurations += listOf("en")
+            dimension = "version"
+            applicationIdSuffix = ".demo"
+            versionNameSuffix = "-demo"
+        }
+        create("full") {
+            dimension = "version"
+            applicationIdSuffix = ".full"
+            versionNameSuffix = "-full"
+        }
+
     }
 
     buildFeatures {

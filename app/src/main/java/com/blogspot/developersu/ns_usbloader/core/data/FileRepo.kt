@@ -2,7 +2,7 @@ package com.blogspot.developersu.ns_usbloader.core.data
 
 import com.blogspot.developersu.ns_usbloader.core.database.FileDao
 import com.blogspot.developersu.ns_usbloader.core.database.FileEntity
-import com.blogspot.developersu.ns_usbloader.model.NSFile
+import com.blogspot.developersu.ns_usbloader.core.model.NSFile
 import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject

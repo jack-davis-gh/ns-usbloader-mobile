@@ -1,6 +1,6 @@
 package com.blogspot.developersu.ns_usbloader.core.data
 
 import com.blogspot.developersu.ns_usbloader.core.database.FileEntity
-import com.blogspot.developersu.ns_usbloader.model.NSFile
+import com.blogspot.developersu.ns_usbloader.core.model.NSFile
 
-fun NSFile.asFileEntity() = FileEntity(uri = uriString, name = name, size = size, isSelected = isSelected)
+fun NSFile.asFileEntity() = FileEntity(uri = uri, name = name, size = size, isSelected = isSelected)

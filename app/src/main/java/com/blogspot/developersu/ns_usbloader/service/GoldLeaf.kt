@@ -4,8 +4,7 @@ import android.content.Context
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.ResultReceiver
-import com.blogspot.developersu.ns_usbloader.core.usb.UsbTransfer
-import com.blogspot.developersu.ns_usbloader.model.NSFile
+import com.blogspot.developersu.ns_usbloader.core.model.NSFile
 
 internal class GoldLeaf(
     resultReceiver: ResultReceiver,

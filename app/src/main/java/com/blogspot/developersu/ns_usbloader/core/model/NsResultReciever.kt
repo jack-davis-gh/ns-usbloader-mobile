@@ -1,4 +1,4 @@
-package com.blogspot.developersu.ns_usbloader.model
+package com.blogspot.developersu.ns_usbloader.core.model
 
 import android.os.Bundle
 import android.os.Handler

@@ -1,6 +1,7 @@
 package com.blogspot.developersu.ns_usbloader.service
 
 import android.content.Context
+import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.ResultReceiver
 import com.blogspot.developersu.ns_usbloader.R
@@ -9,7 +10,7 @@ import com.blogspot.developersu.ns_usbloader.service.NETPacket.code404
 import com.blogspot.developersu.ns_usbloader.service.NETPacket.code416
 import com.blogspot.developersu.ns_usbloader.service.NETPacket.getCode200
 import com.blogspot.developersu.ns_usbloader.service.NETPacket.getCode206
-import com.blogspot.developersu.ns_usbloader.model.NSFile
+import com.blogspot.developersu.ns_usbloader.core.model.NSFile
 import java.io.BufferedInputStream
 import java.io.BufferedReader
 import java.io.IOException
@@ -276,7 +277,7 @@ internal class TinfoilNET(
         try {
             val count = end - start + 1 // Meeh. Somehow it works
 
-            val elementInputStream = context.contentResolver.openInputStream(nspElem.uri)
+            val elementInputStream = context.contentResolver.openInputStream(Uri.parse(nspElem.uri))
                 ?: throw Exception("NET Unable to obtain input stream")
 
             val bis = BufferedInputStream(elementInputStream)

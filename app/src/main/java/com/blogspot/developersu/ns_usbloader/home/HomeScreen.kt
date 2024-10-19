@@ -30,8 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.blogspot.developersu.ns_usbloader.R
-import com.blogspot.developersu.ns_usbloader.model.NSFile
-import com.blogspot.developersu.ns_usbloader.model.Protocol
+import com.blogspot.developersu.ns_usbloader.core.model.NSFile
+import com.blogspot.developersu.ns_usbloader.core.model.Protocol
 import com.blogspot.developersu.ns_usbloader.ui.theme.AppTheme
 import com.blogspot.developersu.ns_usbloader.ui.theme.ThemePreviews
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -154,7 +154,7 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(files) { file ->
-                    HomeFileUi(modifier = Modifier.fillMaxWidth(), file = file, onFileClicked = onFileClicked)
+                    HomeFileCard(modifier = Modifier.fillMaxWidth(), file = file, onFileClicked = onFileClicked)
                 }
             }
         }

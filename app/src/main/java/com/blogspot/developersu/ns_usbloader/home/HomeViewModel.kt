@@ -1,5 +1,7 @@
 package com.blogspot.developersu.ns_usbloader.home
 
+import android.content.ContentResolver
+import android.content.Intent
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import androidx.compose.runtime.getValue
@@ -15,8 +17,8 @@ import androidx.work.WorkManager
 import com.blogspot.developersu.ns_usbloader.NsConstants
 import com.blogspot.developersu.ns_usbloader.NsConstants.json
 import com.blogspot.developersu.ns_usbloader.core.data.FileRepo
-import com.blogspot.developersu.ns_usbloader.model.NSFile
-import com.blogspot.developersu.ns_usbloader.model.Protocol
+import com.blogspot.developersu.ns_usbloader.core.model.NSFile
+import com.blogspot.developersu.ns_usbloader.core.model.Protocol
 import com.blogspot.developersu.ns_usbloader.core.work.TinfoilUsbWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.vinceglb.filekit.core.PlatformFile
@@ -30,7 +32,8 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val usbManager: UsbManager,
     private val workManager: WorkManager,
-    private val fileRepo: FileRepo
+    private val fileRepo: FileRepo,
+    private val contentResolver: ContentResolver
 ): ViewModel() {
 
     val files = fileRepo.getFiles()
@@ -47,7 +50,11 @@ class HomeViewModel @Inject constructor(
         activeProtocol = protocol
     }
 
-    fun onFileUriSelected(file: PlatformFile) = viewModelScope.launch { fileRepo.upsertFile(file) }
+    fun onFileUriSelected(file: PlatformFile) = viewModelScope.launch {
+        val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        contentResolver.takePersistableUriPermission(file.uri, takeFlags)
+        fileRepo.upsertFile(file)
+    }
 
     fun onClickFile(file: NSFile) = viewModelScope.launch { fileRepo.upsertFile(file.copy(isSelected = !file.isSelected)) }
 

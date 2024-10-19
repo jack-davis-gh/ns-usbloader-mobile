@@ -13,7 +13,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.blogspot.developersu.ns_usbloader.MainActivity
 import com.blogspot.developersu.ns_usbloader.NsConstants
 import com.blogspot.developersu.ns_usbloader.R
-import com.blogspot.developersu.ns_usbloader.model.NSFile
+import com.blogspot.developersu.ns_usbloader.core.model.NSFile
 import java.util.concurrent.atomic.AtomicBoolean
 
 class CommunicationsService : IntentService(SERVICE_TAG) {

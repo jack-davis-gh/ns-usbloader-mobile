@@ -14,12 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.blogspot.developersu.ns_usbloader.model.NSFile
+import com.blogspot.developersu.ns_usbloader.core.model.NSFile
 import com.blogspot.developersu.ns_usbloader.ui.theme.AppTypography
 import com.blogspot.developersu.ns_usbloader.ui.theme.ThemePreviews
 
 @Composable
-fun HomeFileUi(
+fun HomeFileCard(
     modifier: Modifier = Modifier,
     file: NSFile,
     onFileClicked: (NSFile) -> Unit = {}
@@ -49,10 +49,10 @@ fun HomeFileUi(
 
 @ThemePreviews
 @Composable
-private fun HomeFileUiPreview() {
-    HomeFileUi(
+private fun HomeFileCardPreview() {
+    HomeFileCard(
         file = NSFile(
-            uriString = "",
+            uri = "",
             name = "SomeBackup.nsp",
             size = 2_000_000_000L,
             isSelected = true

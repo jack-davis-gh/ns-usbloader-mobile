@@ -30,5 +30,5 @@ class NSUsbloaderFactory @Inject constructor(
         appContext: Context,
         workerClassName: String,
         workerParameters: WorkerParameters
-    ): ListenableWorker? = TinfoilUsbWorker(appContext, workerParameters, usbTransfer)
+    ): ListenableWorker = TinfoilUsbWorker(appContext, workerParameters, usbTransfer)
 }

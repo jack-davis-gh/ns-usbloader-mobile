@@ -1,4 +1,4 @@
-package com.blogspot.developersu.ns_usbloader.model
+package com.blogspot.developersu.ns_usbloader.core.model
 
 sealed interface Protocol {
     sealed interface Tinfoil: Protocol {

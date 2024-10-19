@@ -3,7 +3,7 @@ package com.blogspot.developersu.ns_usbloader.core.database
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.blogspot.developersu.ns_usbloader.model.NSFile
+import com.blogspot.developersu.ns_usbloader.core.model.NSFile
 import kotlinx.serialization.Serializable
 
 @Entity
@@ -14,5 +14,5 @@ data class FileEntity(
     val size: Long,
     @ColumnInfo(name = "is_selected") val isSelected: Boolean = false
 ) {
-    fun asNsFile() = NSFile(uriString = uri, name = name, size = size, isSelected = isSelected)
+    fun asNsFile() = NSFile(uri, name, size, isSelected)
 }
