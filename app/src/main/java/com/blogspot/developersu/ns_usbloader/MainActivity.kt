@@ -7,9 +7,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.blogspot.developersu.ns_usbloader.about.AboutScreen
-import com.blogspot.developersu.ns_usbloader.about.AboutUi
-import com.blogspot.developersu.ns_usbloader.about.navigateToAbout
 import com.blogspot.developersu.ns_usbloader.home.HomeScreen
 import com.blogspot.developersu.ns_usbloader.home.HomeUi
 import com.blogspot.developersu.ns_usbloader.settings.SettingsScreen
@@ -91,9 +88,8 @@ class MainActivity : AppCompatActivity() { // , NsResultReciever.Receiver,
                 val navController = rememberNavController()
 
                 NavHost(navController = navController, startDestination = HomeUi) {
-                    composable<HomeUi> { HomeScreen(navController::navigateToSettings, navController::navigateToAbout) }
+                    composable<HomeUi> { HomeScreen(onSettingsClicked = navController::navigateToSettings) }
                     composable<SettingsUi> { SettingsScreen(onBackPressed = { navController.popBackStack() }) }
-                    composable<AboutUi> { AboutScreen(onBackPressed = { navController.popBackStack() }) }
                 }
             }
         }

@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Usb
+import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -21,6 +23,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -35,9 +40,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastForEachIndexed
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.blogspot.developersu.ns_usbloader.R
+import com.blogspot.developersu.ns_usbloader.core.model.Protocol
+import com.blogspot.developersu.ns_usbloader.core.model.Settings
 import com.blogspot.developersu.ns_usbloader.ui.theme.ThemePreviews
 import com.blogspot.developersu.ns_usbloader.ui.theme.AppTheme
 
@@ -99,9 +107,43 @@ fun SettingsScreen(
                 ) {
                     ThemeSelection(
                         modifier = Modifier.fillMaxWidth(),
-                        themeSelection = state.appTheme,
+                        themeSelection = state.settings.appTheme,
                         onThemeChanged = callback::updateThemeSelection
                     )
+
+                    val protoOptions = listOf(
+                        Triple(Protocol.Tinfoil.USB, Icons.Outlined.Usb, stringResource(R.string.tf_usb)),
+                        Triple(Protocol.Tinfoil.NET, Icons.Outlined.Wifi, stringResource(R.string.tf_net)),
+                        Triple(Protocol.GoldLeafUSB, Icons.Outlined.Usb, "GoldLeaf USB")
+                    )
+
+                    Text(
+                        modifier = Modifier.padding(top = 36.dp),
+                        text = stringResource(R.string.transfer_protocol)
+                    )
+
+                    SingleChoiceSegmentedButtonRow(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        protoOptions.fastForEachIndexed { i, (proto, icon, label) ->
+                            val selected = proto == state.settings.activeProto
+                            SegmentedButton(
+                                selected = selected,
+                                shape = SegmentedButtonDefaults.itemShape(index = i, count = protoOptions.size),
+                                icon = {
+                                    SegmentedButtonDefaults.Icon(false) {
+                                        Icon(
+                                            imageVector = icon,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(SegmentedButtonDefaults.IconSize)
+                                        )
+                                    }
+                                },
+                                label = { Text(label, maxLines = 1) },
+                                onClick = { callback.updateProtocol(proto) }
+                            )
+                        }
+                    }
 
                     Text(
                         modifier = Modifier.fillMaxWidth().padding(top = 36.dp, bottom = 0.dp),
@@ -112,7 +154,7 @@ fun SettingsScreen(
 
                     SettingsTextNumberField(
                         modifier = Modifier.fillMaxWidth(),
-                        initialValue = state.nsIp,
+                        initialValue = state.settings.nsIp,
                         isValid = String::isStringIpAddress,
                         onValidUpdate = callback::updateNsIp,
                         errorText = "Invalid IP",
@@ -121,31 +163,31 @@ fun SettingsScreen(
                     )
 
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp).padding(top = 30.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(text = stringResource(R.string.settings_autodtct_phn_ip))
                         Switch(
-                            checked = state.autoIp,
+                            checked = state.settings.autoIp,
                             onCheckedChange = callback::updateAutoIp
                         )
                     }
 
                     SettingsTextNumberField(
                         modifier = Modifier.fillMaxWidth(),
-                        initialValue = state.phoneIp,
+                        initialValue = state.settings.phoneIp,
                         onValidUpdate = callback::updatePhoneIp,
                         isValid = String::isStringIpAddress,
                         errorText = "Invalid IP",
                         label = stringResource(R.string.settings_phone_ip),
                         placeholder = "xxx.xxx.xxx.xxx",
-                        enabled = !state.autoIp
+                        enabled = !state.settings.autoIp
                     )
 
                     SettingsTextNumberField(
                         modifier = Modifier.fillMaxWidth(),
-                        initialValue = state.phonePort.toString(),
+                        initialValue = state.settings.phonePort.toString(),
                         onValidUpdate = { callback.updatePhonePort(it.toInt()) },
                         isValid = { it.toIntOrNull()?.isPhonePort() ?: false },
                         errorText = "Invalid Port, 1024 <= port <= 65535",
@@ -210,11 +252,14 @@ private fun SettingsScreenPreview() {
     AppTheme {
         SettingsScreen(
             state = SettingsUiState.Success(
-                appTheme = 0,
-                nsIp = "192.168.1.42",
-                autoIp = true,
-                phoneIp = "192.168.1.142",
-                phonePort = 6024
+                Settings(
+                    appTheme = 0,
+                    activeProto = Protocol.Tinfoil.USB,
+                    nsIp = "192.168.1.42",
+                    autoIp = true,
+                    phoneIp = "192.168.1.142",
+                    phonePort = 6024
+                )
             ),
 //            state = SettingsUiState.Loading,
             onBackPressed = {}

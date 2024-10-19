@@ -1,28 +1,30 @@
 package com.blogspot.developersu.ns_usbloader.home
 
 import android.annotation.SuppressLint
-import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.NoteAdd
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.DrawerValue
+import androidx.compose.material.icons.outlined.Cancel
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Usb
+import androidx.compose.material.icons.outlined.Wifi
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -41,80 +43,109 @@ import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
 import io.github.vinceglb.filekit.core.PlatformFile
-import kotlinx.coroutines.launch
+
+sealed interface HomeScreenState {
+    data class Success(
+        val activeProtocol: Protocol,
+        val files: List<NSFile>,
+        val selectedFileNum: Int
+    ): HomeScreenState
+    data object Loading: HomeScreenState
+}
+
+interface HomeScreenCallbacks {
+    fun onDeleteSelected()
+    fun onClearSelected()
+    fun onFileClicked(file: NSFile)
+    fun onUploadFileClicked()
+    fun onFileUriSelected(file: PlatformFile)
+
+    object Default: HomeScreenCallbacks {
+        override fun onDeleteSelected() {}
+        override fun onClearSelected() {}
+        override fun onFileClicked(file: NSFile) {}
+        override fun onUploadFileClicked() {}
+        override fun onFileUriSelected(file: PlatformFile) {}
+    }
+}
 
 @SuppressLint("InlinedApi")
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun HomeScreen(
-    onSettingsClicked: () -> Unit,
-    onAboutClicked: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
+    onSettingsClicked: () -> Unit = {}
 ) {
-    val files by viewModel.files.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
     // Notification Permission
     // TODO fix this isn't the way it was meant to be implemented and if notification perms are revoked the app just breaks
     val notificationState = rememberPermissionState(android.Manifest.permission.POST_NOTIFICATIONS)
     if (notificationState.status.isGranted) {
         HomeScreen(
-            activeProtocol = viewModel.activeProtocol,
-            files = files,
-            onFileUriSelected = viewModel::onFileUriSelected,
-            onProtocolChanged = viewModel::updateActiveProtocol,
-            onUploadFileClicked = viewModel::uploadFile,
-            onSettingsClicked = onSettingsClicked,
-            onFileClicked = viewModel::onClickFile,
-            onAboutClicked = onAboutClicked
+            state = state,
+            callbacks = viewModel.callbacks,
+            onSettingsClicked = onSettingsClicked
+        )
+    }
+}
+
+@Composable
+fun HomeScreen(
+    state: HomeScreenState,
+    callbacks: HomeScreenCallbacks,
+    onSettingsClicked: () -> Unit = {}
+) {
+    when(state) {
+        HomeScreenState.Loading -> CircularProgressIndicator()
+        is HomeScreenState.Success -> HomeScreenInner(
+            state,
+            callbacks,
+            onSettingsClicked
         )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(
-    activeProtocol: Protocol,
-    files: List<NSFile>,
-    onProtocolChanged: (Protocol) -> Unit = {},
-    onSettingsClicked: () -> Unit = {},
-    onAboutClicked: () -> Unit = {},
-    onFileClicked: (NSFile) -> Unit = {},
-    onUploadFileClicked: () -> Unit = {},
-    onFileUriSelected: (PlatformFile) -> Unit = {}
+fun HomeScreenInner(
+    state: HomeScreenState.Success,
+    callbacks: HomeScreenCallbacks,
+    onSettingsClicked: () -> Unit = {}
 ) {
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-
-    fun drawerClose() = scope.launch { drawerState.close() }
-
     val launcher = rememberFilePickerLauncher(
         type = PickerType.File(extensions = listOf("nsp", "xci")),
         mode = PickerMode.Single,
         title = "Pick a rom",
-        onResult = { it?.let(onFileUriSelected) }
+        onResult = { it?.let(callbacks::onFileUriSelected) }
     )
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            HomeScreenDrawer(activeProtocol = activeProtocol,
-                onProtocolChanged = { onProtocolChanged(it).also { drawerClose() } },
-                onSettingsClicked = { onSettingsClicked().also { drawerClose() } },
-                onAboutClicked = { onAboutClicked().also { drawerClose() } }
-            )
-        },
-    ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        @StringRes val protoStr: Int = when (activeProtocol) {
-                            Protocol.GoldLeafUSB -> R.string.gl
-                            Protocol.Tinfoil.NET -> R.string.tf_net
-                            Protocol.Tinfoil.USB -> R.string.tf_usb
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        if (state.selectedFileNum == 0) {
+                            val (protoIcon, protoStr) = when (state.activeProtocol) {
+                                Protocol.GoldLeafUSB -> Pair(Icons.Outlined.Usb, R.string.gl)
+                                Protocol.Tinfoil.NET -> Pair(Icons.Outlined.Wifi, R.string.tf_net)
+                                Protocol.Tinfoil.USB -> Pair(Icons.Outlined.Usb, R.string.tf_usb)
+                            }
+                            Icon(imageVector = protoIcon, contentDescription = null)
+                            Text(stringResource(protoStr))
+                        } else {
+                            Icon(
+                                modifier = Modifier.clickable { callbacks.onClearSelected() },
+                                imageVector = Icons.Outlined.Cancel, contentDescription = null)
+                            Text("${state.selectedFileNum} Selected")
                         }
-                        Text(stringResource(protoStr))
-                    },
-                    actions = {
+                    }
+                },
+                actions = {
+                    if (state.selectedFileNum == 0) {
                         IconButton(
                             onClick = launcher::launch
                         ) {
@@ -123,39 +154,43 @@ fun HomeScreen(
                                 contentDescription = "Select files icon"
                             )
                         }
-                    },
-                    navigationIcon = {
                         IconButton(
-                            onClick = {
-                                scope.launch {
-                                    drawerState.apply {
-                                        if (isClosed) open() else close()
-                                    }
-                                }
-                            }
-                        ) { Icon(Icons.Filled.Menu, contentDescription = "Open menu button") }
+                            onClick = onSettingsClicked
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Settings,
+                                contentDescription = "Settings icon"
+                            )
+                        }
+                    } else {
+                        IconButton(
+                            onClick = callbacks::onUploadFileClicked
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_upload_btn),
+                                contentDescription = "Upload icon"
+                            )
+                        }
+                        IconButton(
+                            onClick = callbacks::onDeleteSelected
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = "Trash Icon"
+                            )
+                        }
                     }
-                )
-            },
-            floatingActionButton = {
-                FloatingActionButton(
-                    onClick = onUploadFileClicked
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_upload_btn),
-                        contentDescription = "Upload files to NS Icon"
-                    )
                 }
-            }
-        ) { contentPadding ->
-            // Screen content
-            LazyColumn(
-                modifier = Modifier.padding(contentPadding).fillMaxWidth().padding(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(files) { file ->
-                    HomeFileCard(modifier = Modifier.fillMaxWidth(), file = file, onFileClicked = onFileClicked)
-                }
+            )
+        }
+    ) { contentPadding ->
+        // Screen content
+        LazyColumn(
+            modifier = Modifier.padding(contentPadding).fillMaxWidth().padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            items(state.files) { file ->
+                HomeFileCard(modifier = Modifier.fillMaxWidth(), file = file, onFileClicked = callbacks::onFileClicked)
             }
         }
     }
@@ -166,8 +201,12 @@ fun HomeScreen(
 fun HomeScreenPreview() {
     AppTheme {
         HomeScreen(
-            activeProtocol = Protocol.Tinfoil.USB,
-            files = emptyList()
+            state = HomeScreenState.Success(
+                activeProtocol = Protocol.Tinfoil.USB,
+                files = emptyList(),
+                selectedFileNum = 1
+            ),
+            callbacks = HomeScreenCallbacks.Default
         )
     }
 }

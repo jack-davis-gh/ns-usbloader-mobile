@@ -13,3 +13,4 @@
 /captures
 .externalNativeBuild
 /.idea/compiler.xml
+.kotlin

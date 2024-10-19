@@ -1,14 +1,12 @@
 package com.blogspot.developersu.ns_usbloader.settings
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.blogspot.developersu.ns_usbloader.core.datastore.SettingsStore
+import com.blogspot.developersu.ns_usbloader.core.model.Protocol
+import com.blogspot.developersu.ns_usbloader.core.model.Settings
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -17,13 +15,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 sealed interface SettingsUiState {
-    data class Success(
-        val appTheme: Int, // TODO fix this, this should be representable via an Object or something, an int is not useful to look at
-        val nsIp: String,
-        val autoIp: Boolean,
-        val phoneIp: String,
-        val phonePort: Int,
-    ): SettingsUiState
+    data class Success(val settings: Settings): SettingsUiState
     data object Loading: SettingsUiState
 }
 
@@ -32,77 +24,54 @@ interface SettingsPrefsUpdateCallback {
         val Empty = object : SettingsPrefsUpdateCallback {}
     }
     fun updateThemeSelection(selection: Int) {}
+    fun updateProtocol(proto: Protocol) {}
     fun updateNsIp(ip: String) {}
     fun updateAutoIp(autoIp: Boolean) {}
     fun updatePhoneIp(phoneIp: String) {}
-    fun updatePhonePort(phonePort: Int) {}
+    fun updatePhonePort(port: Int) {}
 }
+
+
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val dataStore: DataStore<Preferences>
+    private val settingsStore: SettingsStore
 ): ViewModel(), SettingsPrefsUpdateCallback {
-    companion object {
-        val APP_THEME = intPreferencesKey("APP_THEME")
-        val NS_IP_KEY = stringPreferencesKey("NS_IP")
-        val AUTO_IP_KEY = booleanPreferencesKey("AUTO_IP")
-        val PHONE_IP_KEY = stringPreferencesKey("PHONE_IP")
-        val PHONE_PORT_KEY = intPreferencesKey("PHONE_PORT")
+    val state: StateFlow<SettingsUiState> = settingsStore.settings
+        .map { SettingsUiState.Success(it) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = SettingsUiState.Loading
+        )
+
+    fun updateSettings(block: suspend CoroutineScope.() -> Unit) {
+        viewModelScope.launch { block() }
     }
 
-    val state: StateFlow<SettingsUiState> = dataStore.data.map { prefs ->
-        SettingsUiState.Success(
-            appTheme = prefs[APP_THEME] ?: 0,
-            nsIp = prefs[NS_IP_KEY] ?: "192.168.1.42",
-            autoIp = prefs[AUTO_IP_KEY] ?: true,
-            phoneIp = prefs[PHONE_IP_KEY] ?: "192.168.1.142",
-            phonePort = prefs[PHONE_PORT_KEY] ?: 6024
-        )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = SettingsUiState.Loading
-    )
-
     val updateCallbacks = object : SettingsPrefsUpdateCallback {
-        override fun updateThemeSelection(selection: Int) {
-            viewModelScope.launch {
-                dataStore.edit { prefs ->
-                    prefs[APP_THEME] = selection
-                }
-            }
+        override fun updateThemeSelection(selection: Int) = updateSettings {
+            settingsStore.update(appTheme = selection)
         }
 
-        override fun updateNsIp(ip: String) {
-            viewModelScope.launch {
-                dataStore.edit { prefs ->
-                    prefs[NS_IP_KEY] = ip
-                }
-            }
+        override fun updateProtocol(proto: Protocol) = updateSettings {
+            settingsStore.update(activeProto = proto)
         }
 
-        override fun updateAutoIp(autoIp: Boolean) {
-            viewModelScope.launch {
-                dataStore.edit { prefs ->
-                    prefs[AUTO_IP_KEY] = autoIp
-                }
-            }
+        override fun updateNsIp(ip: String) = updateSettings {
+            settingsStore.update(nsIp = ip)
         }
 
-        override fun updatePhoneIp(phoneIp: String) {
-            viewModelScope.launch {
-                dataStore.edit { prefs ->
-                    prefs[PHONE_IP_KEY] = phoneIp
-                }
-            }
+        override fun updateAutoIp(autoIp: Boolean) = updateSettings {
+            settingsStore.update(autoIp = autoIp)
         }
 
-        override fun updatePhonePort(port: Int) {
-            viewModelScope.launch {
-                dataStore.edit { prefs ->
-                    prefs[PHONE_PORT_KEY] = port
-                }
-            }
+        override fun updatePhoneIp(phoneIp: String) = updateSettings {
+            settingsStore.update(phoneIp = phoneIp)
+        }
+
+        override fun updatePhonePort(port: Int) = updateSettings {
+            settingsStore.update(phonePort = port)
         }
     }
 }

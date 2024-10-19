@@ -55,6 +55,7 @@ private fun HomeFileCardPreview() {
             uri = "",
             name = "SomeBackup.nsp",
             size = 2_000_000_000L,
+            cuteSize = "2 GB",
             isSelected = true
         )
     )

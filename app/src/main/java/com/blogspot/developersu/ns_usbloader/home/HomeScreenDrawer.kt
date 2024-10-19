@@ -35,7 +35,6 @@ fun HomeScreenDrawer(
     activeProtocol: Protocol,
     onProtocolChanged: (Protocol) -> Unit,
     onSettingsClicked: () -> Unit = {},
-    onAboutClicked: () -> Unit = {}
 ) {
     ModalDrawerSheet(
         modifier = Modifier.fillMaxSize().padding(end = 80.dp)
@@ -65,7 +64,6 @@ fun HomeScreenDrawer(
             Text(stringResource(R.string.other))
 
             DrawerIconText(R.drawable.ic_settings, "Gear Icon", R.string.settings, onClick = onSettingsClicked)
-            DrawerIconText(R.drawable.ic_info, "Info Icon", R.string.about_app, onClick = onAboutClicked)
         }
     }
 }
