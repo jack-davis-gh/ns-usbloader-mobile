@@ -1,4 +1,4 @@
-package com.blogspot.developersu.ns_usbloader.settings
+package com.blogspot.developersu.ns_usbloader.settings.ui
 
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
@@ -10,6 +10,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import com.blogspot.developersu.ns_usbloader.settings.isStringIpAddress
 import com.blogspot.developersu.ns_usbloader.ui.theme.AppTheme
 import com.blogspot.developersu.ns_usbloader.ui.theme.ThemePreviews
 

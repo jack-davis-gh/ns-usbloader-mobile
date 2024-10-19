@@ -3,7 +3,11 @@ package com.blogspot.developersu.ns_usbloader
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -83,10 +87,17 @@ class MainActivity : AppCompatActivity() { // , NsResultReciever.Receiver,
         super.onCreate(savedInstanceState)
         FileKit.init(this)
         enableEdgeToEdge()
+        val viewModel: MainActivityViewModel by viewModels()
         setContent {
-            AppTheme {
-                val navController = rememberNavController()
+            val theme by viewModel.theme.collectAsStateWithLifecycle()
+            val isDarkTheme = when (theme) {
+                0 -> isSystemInDarkTheme()
+                1 -> false
+                else -> true
+            }
 
+            AppTheme(isDarkTheme) {
+                val navController = rememberNavController()
                 NavHost(navController = navController, startDestination = HomeUi) {
                     composable<HomeUi> { HomeScreen(onSettingsClicked = navController::navigateToSettings) }
                     composable<SettingsUi> { SettingsScreen(onBackPressed = { navController.popBackStack() }) }
@@ -165,10 +176,6 @@ class MainActivity : AppCompatActivity() { // , NsResultReciever.Receiver,
 //        if (savedInstanceState == null && uri != null) {
 //            readFile(intent)
 //        }
-//    }
-
-//    private fun updateUploadBtnState() {    // TODO: this function is bad. It multiplies entropy and sorrow.
-//        uploadToNsBtn!!.isEnabled = mAdapter!!.itemCount > 0
 //    }
 //
 //    /**

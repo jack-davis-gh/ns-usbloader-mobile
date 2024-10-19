@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.blogspot.developersu.ns_usbloader.R
 import com.blogspot.developersu.ns_usbloader.core.model.NSFile
 import com.blogspot.developersu.ns_usbloader.core.model.Protocol
+import com.blogspot.developersu.ns_usbloader.home.ui.HomeFileCard
 import com.blogspot.developersu.ns_usbloader.ui.theme.AppTheme
 import com.blogspot.developersu.ns_usbloader.ui.theme.ThemePreviews
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -124,8 +125,7 @@ fun HomeScreenInner(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                    Row(verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         if (state.selectedFileNum == 0) {
@@ -146,36 +146,21 @@ fun HomeScreenInner(
                 },
                 actions = {
                     if (state.selectedFileNum == 0) {
-                        IconButton(
-                            onClick = launcher::launch
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.NoteAdd,
-                                contentDescription = "Select files icon"
-                            )
+                        IconButton(launcher::launch) {
+                            Icon(Icons.AutoMirrored.Outlined.NoteAdd,
+                                contentDescription = "Select files icon")
                         }
-                        IconButton(
-                            onClick = onSettingsClicked
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Settings,
-                                contentDescription = "Settings icon"
-                            )
+                        IconButton(onSettingsClicked) {
+                            Icon(Icons.Outlined.Settings,
+                                contentDescription = "Settings icon")
                         }
                     } else {
-                        IconButton(
-                            onClick = callbacks::onUploadFileClicked
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_upload_btn),
-                                contentDescription = "Upload icon"
-                            )
+                        IconButton(callbacks::onUploadFileClicked) {
+                            Icon(painterResource(R.drawable.ic_upload_btn),
+                                contentDescription = "Upload icon")
                         }
-                        IconButton(
-                            onClick = callbacks::onDeleteSelected
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Delete,
+                        IconButton(callbacks::onDeleteSelected) {
+                            Icon(Icons.Outlined.Delete,
                                 contentDescription = "Trash Icon"
                             )
                         }
@@ -190,7 +175,8 @@ fun HomeScreenInner(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(state.files) { file ->
-                HomeFileCard(modifier = Modifier.fillMaxWidth(), file = file, onFileClicked = callbacks::onFileClicked)
+                HomeFileCard(modifier = Modifier.fillMaxWidth(), file = file,
+                    onFileClicked = callbacks::onFileClicked)
             }
         }
     }

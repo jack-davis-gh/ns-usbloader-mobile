@@ -1,10 +1,12 @@
 package com.blogspot.developersu.ns_usbloader.core.usb
 
+import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbDeviceConnection
 import android.hardware.usb.UsbEndpoint
 import android.hardware.usb.UsbInterface
 import android.hardware.usb.UsbManager
 import com.blogspot.developersu.ns_usbloader.core.common.asResult
+import com.blogspot.developersu.ns_usbloader.core.common.mapToResult
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -19,19 +21,23 @@ class UsbTransfer(
     private var epOut: UsbEndpoint? = null
     private var connection: UsbDeviceConnection? = null
 
-    suspend fun open() {
+    fun getNs(): Result<UsbDevice> = usbManager.deviceList.values
+            .firstOrNull { device -> device.vendorId == 1406 && device.productId == 12288 }
+            .mapToResult(exception = Exception("Couldn't find "))
+
+    suspend fun open(): Result<Unit> {
         mutex.withLock {
-            val device = usbManager.deviceList.values.firstOrNull { device -> device.vendorId == 1406 && device.productId == 12288 }
-                ?: throw Exception("Unable to find Ns over USB.")
+            val device = getNs().getOrElse { return Result.failure(it) }
             usbInterface = device.getInterface(0)
             epIn = usbInterface?.getEndpoint(0) // For bulk read
             epOut = usbInterface?.getEndpoint(1) // For bulk write
             connection = usbManager.openDevice(device).also {
                 if (!it.claimInterface(usbInterface, true)) {
-                    throw Exception("USB: failed to claim interface")
+                    return Result.failure(Exception("USB: failed to claim interface"))
                 }
             }
         }
+        return Result.success(Unit)
     }
 
     /**
@@ -40,7 +46,7 @@ class UsbTransfer(
      * 'true' if errors happened
      */
     suspend fun writeUsb(message: ByteArray): Result<Unit> {
-        val exp = "Write ByteArray to usb failed.\nByteArray = $message"
+        val exp = Exception("Write ByteArray to usb failed.\nByteArray = $message")
 
         mutex.withLock {
             val connection = this.connection ?: return Result.failure(Exception("Usb connection is not open"))
@@ -56,7 +62,7 @@ class UsbTransfer(
             }
         }
 
-        return Result.failure(Exception(exp))
+        return Result.failure(exp)
     }
 
     /**
@@ -83,11 +89,12 @@ class UsbTransfer(
         return Result.failure(Exception("Read ByteArray from usb failed."))
     }
 
-    suspend fun close() {
+    suspend fun close(): Result<Unit> {
         mutex.withLock {
-            val connection = this.connection ?: throw Exception("Usb connection is not open")
+            val connection = this.connection ?: return Result.failure(Exception("Usb connection is not open"))
             connection.releaseInterface(usbInterface)
             connection.close()
         }
+        return Result.success(Unit)
     }
 }

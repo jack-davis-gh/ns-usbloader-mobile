@@ -1,4 +1,4 @@
-package com.blogspot.developersu.ns_usbloader.home
+package com.blogspot.developersu.ns_usbloader.home.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column

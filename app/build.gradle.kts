@@ -71,6 +71,7 @@ dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.activity.compose)
 
+    implementation(libs.material)
     implementation(libs.material3)
     implementation(libs.material.icons.extended)
 
@@ -99,7 +100,7 @@ dependencies {
     ksp(libs.hilt.android.compiler)
 
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.kotlin.coroutines)
+    implementation(libs.kotlin.coroutines.android)
 
     // Enables FileKit without Compose dependencies
     implementation(libs.filekit.core)

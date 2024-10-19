@@ -13,6 +13,7 @@ import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import com.blogspot.developersu.ns_usbloader.NsConstants
 import com.blogspot.developersu.ns_usbloader.NsConstants.json
+import com.blogspot.developersu.ns_usbloader.core.common.stateIn
 import com.blogspot.developersu.ns_usbloader.core.data.FileRepo
 import com.blogspot.developersu.ns_usbloader.core.datastore.SettingsStore
 import com.blogspot.developersu.ns_usbloader.core.model.NSFile
@@ -21,10 +22,8 @@ import com.blogspot.developersu.ns_usbloader.core.work.TinfoilUsbWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import javax.inject.Inject
@@ -43,27 +42,19 @@ class HomeViewModel @Inject constructor(
         files.map { file ->
             file.copy(isSelected = file.name in activeFiles)
         }
-    }.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5_000),
-        emptyList()
-    )
+    }.stateIn(viewModelScope, emptyList())
 
     private val activeProtocol = settingsStore.settings
         .map { it.activeProto }
-        .stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5_000),
-            Protocol.Tinfoil.USB
-        )
+        .stateIn(viewModelScope, Protocol.Tinfoil.USB)
 
     val state = combine(files, activeFiles, activeProtocol) { files, activeFiles, activeProtocol ->
-        HomeScreenState.Success(activeProtocol = activeProtocol, files = files, selectedFileNum = activeFiles.size)
-    }.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5_000),
-        HomeScreenState.Loading
-    )
+        HomeScreenState.Success(
+            activeProtocol = activeProtocol,
+            files = files,
+            selectedFileNum = activeFiles.size
+        )
+    }.stateIn(viewModelScope, HomeScreenState.Loading)
 
     val callbacks = object : HomeScreenCallbacks {
         override fun onFileUriSelected(file: PlatformFile) {

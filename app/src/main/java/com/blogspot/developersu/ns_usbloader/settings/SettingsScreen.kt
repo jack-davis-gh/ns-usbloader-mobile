@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.blogspot.developersu.ns_usbloader.R
 import com.blogspot.developersu.ns_usbloader.core.model.Protocol
 import com.blogspot.developersu.ns_usbloader.core.model.Settings
+import com.blogspot.developersu.ns_usbloader.settings.ui.SettingsTextNumberField
 import com.blogspot.developersu.ns_usbloader.ui.theme.ThemePreviews
 import com.blogspot.developersu.ns_usbloader.ui.theme.AppTheme
 

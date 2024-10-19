@@ -1,7 +1,9 @@
 package com.blogspot.developersu.ns_usbloader.core.usb
 
 import com.blogspot.developersu.ns_usbloader.core.model.NSFile
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
 import java.io.BufferedInputStream
 import java.io.IOException
 import java.io.InputStream
@@ -114,7 +116,9 @@ class TinfoilUsb(
 
             var readBuf: ByteArray //= new byte[1048576];        // eq. Allocate 1mb
 
-            if (bufferedInStream.skip(receivedRangeOffset) != receivedRangeOffset) {
+            if (withContext(Dispatchers.IO) {
+                    bufferedInStream.skip(receivedRangeOffset)
+                } != receivedRangeOffset) {
                 return Result.failure(Exception("TF Requested skip is out of file size. Nothing to transmit."))
             }
 
@@ -130,7 +134,9 @@ class TinfoilUsb(
 
                 readBuf = ByteArray(readPice) // TODO: not perfect moment, consider refactoring.
 
-                if (bufferedInStream.read(readBuf) != readPice) {
+                if (withContext(Dispatchers.IO) {
+                        bufferedInStream.read(readBuf)
+                    } != readPice) {
                     return Result.failure(Exception("TF Reading of stream suddenly ended"))
                 }
                 //write to USB
@@ -148,7 +154,9 @@ class TinfoilUsb(
 //                Log.i("LPR", "CO: "+readFrom+"RRS: "+receivedRangeSize+"RES: "+(readFrom+1/(receivedRangeSize/100+1)));
             }
 
-            bufferedInStream.close()
+            withContext(Dispatchers.IO) {
+                bufferedInStream.close()
+            }
 //            resetProgressBar()
         } catch (ioe: IOException) {
             return Result.failure(Exception("TF IOException: " + ioe.message))

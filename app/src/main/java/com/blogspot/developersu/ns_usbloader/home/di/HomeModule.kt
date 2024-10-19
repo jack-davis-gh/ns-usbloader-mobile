@@ -1,4 +1,4 @@
-package com.blogspot.developersu.ns_usbloader.home
+package com.blogspot.developersu.ns_usbloader.home.di
 
 import android.content.ContentResolver
 import android.content.Context
