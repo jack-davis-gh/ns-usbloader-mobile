@@ -3,7 +3,6 @@ package com.blogspot.developersu.ns_usbloader.service
 import android.content.Context
 import android.net.Uri
 import android.net.wifi.WifiManager
-import android.os.ResultReceiver
 import com.blogspot.developersu.ns_usbloader.R
 import com.blogspot.developersu.ns_usbloader.service.NETPacket.code400
 import com.blogspot.developersu.ns_usbloader.service.NETPacket.code404
@@ -28,7 +27,6 @@ import java.util.LinkedList
 import java.util.Locale
 
 internal class TinfoilNET(
-    resultReceiver: ResultReceiver,
     context: Context,
     nspElements: ArrayList<NSFile>,
     private val nsIp: String,

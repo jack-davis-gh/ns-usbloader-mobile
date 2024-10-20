@@ -1,9 +1,10 @@
-package com.blogspot.developersu.ns_usbloader.core.datastore
+package com.blogspot.developersu.ns_usbloader.core.datastore.di
 
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import com.blogspot.developersu.ns_usbloader.core.datastore.SettingsStore
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

@@ -1,10 +1,10 @@
-package com.blogspot.developersu.ns_usbloader.core.usb
+package com.blogspot.developersu.ns_usbloader.core.platform.usb
 
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbDeviceConnection
 import android.hardware.usb.UsbEndpoint
 import android.hardware.usb.UsbInterface
-import android.hardware.usb.UsbManager
+import android.hardware.usb.UsbManager as AndroidUsbManager
 import com.blogspot.developersu.ns_usbloader.core.common.asResult
 import com.blogspot.developersu.ns_usbloader.core.common.mapToResult
 import kotlinx.coroutines.isActive
@@ -12,8 +12,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.coroutineContext
 
-class UsbTransfer(
-    private val usbManager: UsbManager
+class UsbManager(
+    private val usbManager: AndroidUsbManager
 ) {
     private val mutex = Mutex()
     private var usbInterface: UsbInterface? = null
@@ -23,7 +23,12 @@ class UsbTransfer(
 
     fun getNs(): Result<UsbDevice> = usbManager.deviceList.values
             .firstOrNull { device -> device.vendorId == 1406 && device.productId == 12288 }
-            .mapToResult(exception = Exception("Couldn't find "))
+            .let { device ->
+                if (device != null && usbManager.hasPermission(device)) {
+                    device
+                } else null
+            }
+            .mapToResult(exception = Exception("Couldn't find ns"))
 
     suspend fun open(): Result<Unit> {
         mutex.withLock {

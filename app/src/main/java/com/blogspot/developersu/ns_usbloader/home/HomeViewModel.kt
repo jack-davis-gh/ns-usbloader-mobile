@@ -2,8 +2,6 @@ package com.blogspot.developersu.ns_usbloader.home
 
 import android.content.ContentResolver
 import android.content.Intent
-import android.hardware.usb.UsbDevice
-import android.hardware.usb.UsbManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.Data
@@ -18,7 +16,8 @@ import com.blogspot.developersu.ns_usbloader.core.data.FileRepo
 import com.blogspot.developersu.ns_usbloader.core.datastore.SettingsStore
 import com.blogspot.developersu.ns_usbloader.core.model.NSFile
 import com.blogspot.developersu.ns_usbloader.core.model.Protocol
-import com.blogspot.developersu.ns_usbloader.core.work.TinfoilUsbWorker
+import com.blogspot.developersu.ns_usbloader.core.platform.usb.UsbManager
+import com.blogspot.developersu.ns_usbloader.core.work_manager.CommunicationWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -86,10 +85,7 @@ class HomeViewModel @Inject constructor(
 
         override fun onUploadFileClicked() {
             viewModelScope.launch {
-                val usbDevice: UsbDevice? =
-                    usbManager.deviceList.values.firstOrNull { device -> device.vendorId == 1406 && device.productId == 12288 }
-
-                if (usbDevice != null && usbManager.hasPermission(usbDevice)) {
+                if (usbManager.getNs().isSuccess) {
                     files.collect { files ->
                         val activeFiles = files.filter { it.name in activeFiles.value }
                         val inputData = Data.Builder()
@@ -97,7 +93,7 @@ class HomeViewModel @Inject constructor(
                                 json.encodeToString(activeFiles))
                             .build()
 
-                        val request = OneTimeWorkRequestBuilder<TinfoilUsbWorker>()
+                        val request = OneTimeWorkRequestBuilder<CommunicationWorker>()
                             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                             .setInputData(inputData)
                             .build()

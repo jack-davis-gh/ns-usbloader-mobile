@@ -1,4 +1,4 @@
-package com.blogspot.developersu.ns_usbloader.core.work
+package com.blogspot.developersu.ns_usbloader.core.work_manager
 
 import android.app.NotificationChannel
 import android.app.NotificationManager

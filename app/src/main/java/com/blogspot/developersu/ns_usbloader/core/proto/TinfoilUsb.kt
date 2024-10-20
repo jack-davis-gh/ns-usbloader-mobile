@@ -1,23 +1,36 @@
-package com.blogspot.developersu.ns_usbloader.core.usb
+package com.blogspot.developersu.ns_usbloader.core.proto
 
 import com.blogspot.developersu.ns_usbloader.core.model.NSFile
+import com.blogspot.developersu.ns_usbloader.core.platform.file.FileManager
+import com.blogspot.developersu.ns_usbloader.core.platform.usb.UsbManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.io.BufferedInputStream
 import java.io.IOException
-import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.coroutines.coroutineContext
 
 class TinfoilUsb(
-    private val transfer: UsbTransfer,
-    private val openStreamFactory: (NSFile) -> Result<InputStream?>
+    private val transfer: UsbManager,
+    private val fileManager: FileManager
 ) {
     private val magicPacket = byteArrayOf(0x54, 0x55, 0x43, 0x30) // eq. 'TUC0' @ UTF-8 (actually ASCII lol, u know what I mean)
 
-    suspend fun sendFiles(files: List<NSFile>) {
+    suspend fun run(files: List<NSFile>): Result<Unit> {
+        try {
+            transfer.open()
+                .onFailure { return Result.failure(it) }
+            sendFiles(files)
+                .onFailure { return Result.failure(it) }
+        } finally {
+            transfer.close()
+        }
+        return Result.success(Unit)
+    }
+
+    private suspend fun sendFiles(files: List<NSFile>): Result<Unit> {
 //            status =
 //                context.resources.getString(R.string.status_uploaded) // Don't change status that is already set to FAILED TODO: FIX
 
@@ -32,26 +45,23 @@ class TinfoilUsb(
         // Send list of NSP files:
         // Proceed "TUL0"
         transfer.writeUsb(byteArrayOf(0x54, 0x55, 0x4c, 0x30))
-//            .mapCatching { Exception("TF Send list of files: handshake failure") }
-            .getOrThrow()
+            .onFailure { return Result.failure(Exception("TF Send list of files: handshake failure")) }
 
         // Sending NSP list
          // size of the list we're going to transfer goes... + 8 zero bytes goes (Padding)...
         transfer.writeUsb(nspListSize)
-            .mapCatching { Exception("TF Send list of files: [send list length]") }
-            .getOrThrow()
+            .onFailure { return Result.failure(Exception("TF Send list of files: [send list length]")) }
 
         transfer.writeUsb(ByteArray(8))
-            .mapCatching { Exception("TF Send list of files: [padding]") }
-            .getOrThrow()
+            .onFailure { return Result.failure(Exception("TF Send list of files: [padding]")) }
 
         transfer.writeUsb(nspListNames) // list of the names goes...
-            .mapCatching { Exception("TF Send list of files: [send list itself]") }
-            .getOrThrow()
+            .onFailure { return Result.failure(Exception("TF Send list of files: [send list itself]")) }
 
     // After we sent commands to NS, this chain starts
         while (coroutineContext.isActive) {
-            val receivedArray = transfer.readUsb().getOrThrow()
+            val receivedArray = transfer.readUsb()
+                .getOrElse { return Result.failure(it) }
 
             // Bytes from 0 to 3 should contain 'magic' TUC0, so must be verified like this
             if (!receivedArray.copyOfRange(0, 4).contentEquals(magicPacket))
@@ -60,16 +70,16 @@ class TinfoilUsb(
             // 8th to 12th(explicits) bytes in returned data stands for command ID as unsigned integer (Little-endian). Actually, we have to compare arrays here, but in real world it can't be greater then 0/1/2, thus:
             // BTW also protocol specifies 4th byte to be 0x00 kinda indicating that that this command is valid. But, as you may see, never happens other situation when it's not = 0.
             when (receivedArray[8].toInt()) {
-                0x00 -> return // 0x00 - exit - All interaction with USB device should be ended (expected);
+                0x00 -> return Result.success(Unit) // 0x00 - exit - All interaction with USB device should be ended (expected);
                 0x01, 0x02 -> { //0x01 - file range; 0x02 unknown bug on backend side (dirty hack).
                     fileRangeCmd(files)
-                        .getOrThrow()
+                        .onFailure { return Result.failure(it) }
                 }
             }
         }
+        return Result.success(Unit)
     }
 
-//    private val fileMutex = Mutex()
     /**
      * This is what returns requested file (files)
      * Executes multiple times
@@ -78,7 +88,8 @@ class TinfoilUsb(
      */
     private suspend fun fileRangeCmd(files: List<NSFile>): Result<Unit> {
         // Here we take information of what other side wants
-        val receivedArray = transfer.readUsb().getOrThrow()
+        val receivedArray = transfer.readUsb()
+            .getOrElse { return Result.failure(Exception("Unable to read requested file from ns.")) }
 
         // range_offset of the requested file. In the beginning it will be 0x10.
         val receivedRangeSize = ByteBuffer
@@ -91,7 +102,8 @@ class TinfoilUsb(
             .order(ByteOrder.LITTLE_ENDIAN).getLong()
 
         // Requesting UTF-8 file name required:
-        val receivedArray2 = transfer.readUsb().getOrThrow()
+        val receivedArray2 = transfer.readUsb().getOrElse {
+            return Result.failure(Exception("Unable to read file name from usb")) }
         val receivedRequestedNSP: String = receivedArray2.toString(Charsets.UTF_8)
 
         // Sending response header
@@ -101,15 +113,15 @@ class TinfoilUsb(
         ) + receivedRangeSizeRAW + ByteArray(12)
 
         transfer.writeUsb(replyArray)
-//            .mapCatching { Exception("Failed to send response header") }
-            .getOrThrow()
+            .onFailure { return Result.failure(
+                Exception("Failed to send response header")) }
 
         // Get receivedRangeSize in 'RAW' format exactly as it has been received. It's simply.
 
         try {
             val inputStream = files
                 .firstOrNull { it.name == receivedRequestedNSP }
-                ?.let { openStreamFactory(it).getOrNull() }
+                ?.let { fileManager.openStreamFactory(it).getOrNull() }
                 ?: return Result.failure(Exception("Unable to open file."))
 
             val bufferedInStream = BufferedInputStream(inputStream)
@@ -141,10 +153,8 @@ class TinfoilUsb(
                 }
                 //write to USB
                 transfer.writeUsb(readBuf)
-//                    .mapCatching {
-//                        Exception("TF Failure during NSP transmission.")
-//                    }
-//                    .getOrThrow()
+                    .onFailure { return Result.failure(
+                        Exception("TF Failure during NSP transmission.")) }
 
                 readFrom += readPice.toLong()
 

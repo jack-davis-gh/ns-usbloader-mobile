@@ -3,6 +3,7 @@ package com.blogspot.developersu.ns_usbloader.home
 import android.annotation.SuppressLint
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,6 +16,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Usb
 import androidx.compose.material.icons.outlined.Wifi
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -40,6 +42,7 @@ import com.blogspot.developersu.ns_usbloader.ui.theme.ThemePreviews
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.shouldShowRationale
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
@@ -88,6 +91,26 @@ fun HomeScreen(
             callbacks = viewModel.callbacks,
             onSettingsClicked = onSettingsClicked
         )
+    } else {
+        Scaffold { contentPadding ->
+            Column(modifier = Modifier.padding(contentPadding)) {
+                val textToShow = if (notificationState.status.shouldShowRationale) {
+                    // If the user has denied the permission but the rationale can be shown,
+                    // then gently explain why the app requires this permission
+                    "Notification perms are required for progress. Please grant the permission."
+                } else {
+                    // If it's the first time the user lands on this feature, or the user
+                    // doesn't want to be asked again for this permission, explain that the
+                    // permission is required
+                    // TODO notification perms shouldn't be required
+                    "Notification perms are required for progress. Please grant the permission."
+                }
+                Text(textToShow)
+                Button(onClick = { notificationState.launchPermissionRequest() }) {
+                    Text("Request permission")
+                }
+            }
+        }
     }
 }
 

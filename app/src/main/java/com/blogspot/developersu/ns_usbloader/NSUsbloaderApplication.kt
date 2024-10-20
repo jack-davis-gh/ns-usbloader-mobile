@@ -6,8 +6,8 @@ import androidx.work.Configuration
 import androidx.work.ListenableWorker
 import androidx.work.WorkerFactory
 import androidx.work.WorkerParameters
-import com.blogspot.developersu.ns_usbloader.core.usb.UsbTransfer
-import com.blogspot.developersu.ns_usbloader.core.work.TinfoilUsbWorker
+import com.blogspot.developersu.ns_usbloader.core.proto.TinfoilUsb
+import com.blogspot.developersu.ns_usbloader.core.work_manager.CommunicationWorker
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -24,11 +24,11 @@ class NSUsbloaderApplication: Application(), Configuration.Provider {
 }
 
 class NSUsbloaderFactory @Inject constructor(
-    private val usbTransfer: UsbTransfer
+    private val tinfoilUsb: TinfoilUsb
 ): WorkerFactory() {
     override fun createWorker(
         appContext: Context,
         workerClassName: String,
         workerParameters: WorkerParameters
-    ): ListenableWorker = TinfoilUsbWorker(appContext, workerParameters, usbTransfer)
+    ): ListenableWorker = CommunicationWorker(appContext, workerParameters, tinfoilUsb)
 }
