@@ -1,15 +1,14 @@
-package com.blogspot.developersu.ns_usbloader.service
+package com.blogspot.developersu.ns_usbloader.core.proto
 
-import android.content.Context
-import android.net.Uri
-import android.net.wifi.WifiManager
-import com.blogspot.developersu.ns_usbloader.R
-import com.blogspot.developersu.ns_usbloader.service.NETPacket.code400
-import com.blogspot.developersu.ns_usbloader.service.NETPacket.code404
-import com.blogspot.developersu.ns_usbloader.service.NETPacket.code416
-import com.blogspot.developersu.ns_usbloader.service.NETPacket.getCode200
-import com.blogspot.developersu.ns_usbloader.service.NETPacket.getCode206
+import com.blogspot.developersu.ns_usbloader.core.proto.NETPacket.code400
+import com.blogspot.developersu.ns_usbloader.core.proto.NETPacket.code404
+import com.blogspot.developersu.ns_usbloader.core.proto.NETPacket.code416
+import com.blogspot.developersu.ns_usbloader.core.proto.NETPacket.getCode200
+import com.blogspot.developersu.ns_usbloader.core.proto.NETPacket.getCode206
 import com.blogspot.developersu.ns_usbloader.core.model.NSFile
+import com.blogspot.developersu.ns_usbloader.core.platform.file.FileManager
+import com.blogspot.developersu.ns_usbloader.core.platform.network.NetworkManager
+import kotlinx.coroutines.isActive
 import java.io.BufferedInputStream
 import java.io.BufferedReader
 import java.io.IOException
@@ -25,15 +24,17 @@ import java.net.URLEncoder
 import java.nio.ByteBuffer
 import java.util.LinkedList
 import java.util.Locale
+import javax.inject.Inject
+import kotlin.coroutines.coroutineContext
 
-internal class TinfoilNET(
-    context: Context,
-    nspElements: ArrayList<NSFile>,
-    private val nsIp: String,
-    private var phoneIp: String,
-    private val phonePort: Int
-) : TransferTask(context) {
-    private val files = HashMap<String, NSFile>()
+class TinfoilNet @Inject constructor(
+    private val fileManager: FileManager,
+    private val networkManager: NetworkManager
+) {
+    private var files: Map<String, NSFile> = emptyMap()
+    private var nsIp: String = ""
+    private var phoneIp: String = ""
+    private var phonePort: Int = 0
 
     private var handShakeSocket: Socket? = null
     private var serverSocket: ServerSocket? = null
@@ -42,27 +43,51 @@ internal class TinfoilNET(
     private var currSockPW: PrintWriter? = null
 
     private var jobInProgress = true
+    var issueDescription: String? = null
 
-    override fun cancel() {
-        super.cancel()
-
+    suspend fun run(files: List<NSFile>, nsIp: String, phonePort: Int): Boolean {
+        this.nsIp = nsIp
+//        this.phoneIp = phoneIp
+        this.phonePort = phonePort
         try {
-            handShakeSocket!!.close()
-            serverSocket!!.close()
-        } catch (ignored: IOException) {
-        } catch (ignored: NullPointerException) {
+            open(files)
+
+            val handshakeCommand =
+                buildHandshakeContent().toByteArray() // android's .getBytes() default == UTF8  // Follow the
+            val handshakeCommandSize = ByteBuffer.allocate(4).putInt(handshakeCommand.size)
+                .array() // defining order ; Integer size = 4 bytes
+
+            sendHandshake(handshakeCommandSize, handshakeCommand)
+
+            serveRequestsLoop()
+        } catch (e: Exception) {
+            issueDescription = "NET: Unable to connect to NS and send files list: " + e.message
+            return true
+        } finally {
+            close(false)
         }
+
+        return true
+    }
+
+    fun cancel(): Result<Unit> {
+        try {
+            handShakeSocket?.close()
+            serverSocket?.close()
+        } catch (ignored: Exception) {
+            return Result.failure(ignored)
+        }
+        return Result.success(Unit)
     }
 
     /**
      * Simple constructor that everybody uses
      */
-    init {
+    private fun open(files: List<NSFile>) {
         // Collect and encode NSP files list
-        for (nspElem in nspElements) files[URLEncoder.encode(nspElem.name, "UTF-8")
-            .replace("\\+".toRegex(), "%20")] =
-            nspElem // replace + to %20
-
+        this.files = files.associateBy { file ->
+            URLEncoder.encode(file.name, "UTF-8").replace("\\+".toRegex(), "%20")
+        }
 
         // Resolve IP
         if (phoneIp.isEmpty()) resolvePhoneIp()
@@ -76,53 +101,28 @@ internal class TinfoilNET(
 
     @Throws(Exception::class)
     private fun resolvePhoneIp() {
-        val wm =
-            context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-                ?: throw Exception("NET: Unable to auto-resolve IP address.")
-
-        val intIp = wm.connectionInfo.ipAddress
-        phoneIp = String.format(
-            Locale.US, "%d.%d.%d.%d",
-            (intIp and 0xff),
-            (intIp shr 8 and 0xff),
-            (intIp shr 16 and 0xff),
-            (intIp shr 24 and 0xff)
-        )
-        if (phoneIp == "0.0.0.0") throw Exception("NET: Unable to auto-resolve IP address (0.0.0.0)")
+        phoneIp = networkManager.getIpAddress() ?: "0.0.0.0"
+//        val wm =
+//            context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+//                ?: throw Exception("NET: Unable to auto-resolve IP address.")
+//
+//        val intIp = wm.connectionInfo.ipAddress
+//        phoneIp = String.format(
+//            Locale.US, "%d.%d.%d.%d",
+//            (intIp and 0xff),
+//            (intIp shr 8 and 0xff),
+//            (intIp shr 16 and 0xff),
+//            (intIp shr 24 and 0xff)
+//        )
+        if (phoneIp == "0.0.0.0" || phoneIp.isBlank()) throw Exception("NET: Unable to auto-resolve IP address (0.0.0.0)")
     }
 
-    override fun run(): Boolean {
-        try {
-            if (interrupt) return false
-
-            val handshakeCommand =
-                buildHandshakeContent().toByteArray() // android's .getBytes() default == UTF8  // Follow the
-            val handshakeCommandSize = ByteBuffer.allocate(4).putInt(handshakeCommand.size)
-                .array() // defining order ; Integer size = 4 bytes
-
-            sendHandshake(handshakeCommandSize, handshakeCommand)
-
-            serveRequestsLoop()
-        } catch (e: Exception) {
-            close(true)
-            issueDescription = "NET: Unable to connect to NS and send files list: " + e.message
-            return true
+    private fun buildHandshakeContent() = buildString {
+        files.keys.forEach { encodedFileName ->
+            append("$phoneIp:/$phonePort")
+            append(encodedFileName)
+            append('\n')
         }
-        close(false)
-        return true
-    }
-
-    private fun buildHandshakeContent(): String {
-        val myStrBuilder = StringBuilder()
-        for (fileNameEncoded in files.keys) {
-            myStrBuilder.append(phoneIp)
-            myStrBuilder.append(':')
-            myStrBuilder.append(phonePort)
-            myStrBuilder.append('/')
-            myStrBuilder.append(fileNameEncoded)
-            myStrBuilder.append('\n')
-        }
-        return myStrBuilder.toString()
     }
 
     @Throws(Exception::class)
@@ -145,7 +145,7 @@ internal class TinfoilNET(
     }
 
     @Throws(Exception::class)
-    private fun serveRequestsLoop() {
+    private suspend fun serveRequestsLoop() {
         while (jobInProgress) {
             val clientSocket = serverSocket!!.accept()
 
@@ -173,7 +173,7 @@ internal class TinfoilNET(
      * Handle requests
      */
     @Throws(Exception::class)
-    private fun handleRequest(packet: LinkedList<String>) {
+    private suspend fun handleRequest(packet: LinkedList<String>) {
         if (packet[0].startsWith("DROP")) {
             jobInProgress = false
             return
@@ -210,7 +210,7 @@ internal class TinfoilNET(
     }
 
     @Throws(Exception::class)
-    private fun parseGETrange(
+    private suspend fun parseGETrange(
         requestedElement: NSFile,
         fileSize: Long,
         rangeDirective: String
@@ -220,7 +220,7 @@ internal class TinfoilNET(
                 .replace("^range:\\s+?bytes=".toRegex(), "").split("-".toRegex(), limit = 2)
                 .toTypedArray()
 
-            if (!rangeStr[0].isEmpty()) {
+            if (rangeStr[0].isNotEmpty()) {
                 if (rangeStr[1].isEmpty()) {
                     writeToSocket(requestedElement, rangeStr[0].toLong(), fileSize)
                     return
@@ -260,23 +260,20 @@ internal class TinfoilNET(
     }
 
     /** Send commands  */
-    private fun writeToSocket(string: String) {
+    private suspend fun writeToSocket(string: String) {
         currSockPW!!.write(string)
         currSockPW!!.flush()
     }
 
     /** Send files  */
     @Throws(Exception::class)
-    private fun writeToSocket(nspElem: NSFile, start: Long, end: Long) {
-        if (interrupt) {
-            throw Exception("Interrupted by user")
-        }
+    private suspend fun writeToSocket(nspElem: NSFile, start: Long, end: Long): Result<Unit> {
         writeToSocket(getCode206(nspElem.size, start, end))
         try {
             val count = end - start + 1 // Meeh. Somehow it works
 
-            val elementInputStream = context.contentResolver.openInputStream(Uri.parse(nspElem.uri))
-                ?: throw Exception("NET Unable to obtain input stream")
+            val elementInputStream = fileManager.openInputStream(nspElem)
+                .getOrElse { return Result.failure(Exception("NET Unable to obtain input stream")) }
 
             val bis = BufferedInputStream(elementInputStream)
 
@@ -289,7 +286,7 @@ internal class TinfoilNET(
             }
             var currentOffset: Long = 0
             while (currentOffset < count) {
-                if (interrupt) throw Exception("Interrupted by user")
+                if (coroutineContext.isActive) throw Exception("Interrupted by user")
                 if ((currentOffset + readPice) >= count) {
                     readPice = (count - currentOffset).toInt()
                 }
@@ -302,30 +299,29 @@ internal class TinfoilNET(
 
                 currentOffset += readPice.toLong()
 
-                updateProgressBar((currentOffset.toDouble() / (count.toDouble() / 100.0)).toInt())
+//                updateProgressBar((currentOffset.toDouble() / (count.toDouble() / 100.0)).toInt())
             }
             currSockOS!!.flush() // TODO: check if this really needed.
             bis.close()
-            resetProgressBar()
+//            resetProgressBar()
         } catch (ioe: IOException) {
 //            nspElem.status =
 //                context.resources.getString(R.string.status_failed_to_upload) // TODO: REDUNDANT?
             throw Exception("NET: File transmission failed. Returned: " + ioe.message)
         }
+        return Result.success(Unit)
     }
 
     /**
      * Close when done
      */
     private fun close(isFailed: Boolean) {
-        status = if (isFailed) context.resources.getString(R.string.status_failed_to_upload)
-        else context.resources.getString(R.string.status_unkown)
+//        status = if (isFailed) context.resources.getString(R.string.status_failed_to_upload)
+//        else context.resources.getString(R.string.status_unkown)
         try {
             serverSocket?.close() // Closing server socket.
         } catch (ignored: IOException) {
         } catch (ignored: NullPointerException) {
         }
     }
-
-    override var issueDescription: String? = null
 }

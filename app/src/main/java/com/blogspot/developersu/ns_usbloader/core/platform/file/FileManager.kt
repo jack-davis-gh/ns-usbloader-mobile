@@ -9,7 +9,7 @@ import javax.inject.Inject
 class FileManager @Inject constructor(
     private val contentResolver: ContentResolver
 ) {
-    fun openStreamFactory(file: NSFile): Result<InputStream?> {
+    fun openInputStream(file: NSFile): Result<InputStream?> {
         val inputStream = contentResolver.openInputStream(Uri.parse(file.uri))
         return if (inputStream != null) {
             Result.success(inputStream)

@@ -1,21 +1,11 @@
 package com.blogspot.developersu.ns_usbloader.core.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 sealed interface Protocol {
-    sealed interface Tinfoil: Protocol {
-        data object USB: Tinfoil
-        data object NET: Tinfoil
-    }
-    data object GoldLeafUSB: Protocol
-
-    fun asInt() = when(this) {
-        Tinfoil.USB -> 0
-        Tinfoil.NET -> 1
-        GoldLeafUSB -> 2
-    }
-}
-
-fun Int.asProto() = when(this) {
-    0 -> Protocol.Tinfoil.USB
-    1 -> Protocol.Tinfoil.NET
-    else -> Protocol.GoldLeafUSB
+    @Serializable data object TinfoilUSB: Protocol
+    @Serializable data object TinfoilNET: Protocol
+//    data object GoldLeafUSB: Protocol TODO Removing this for now, idk whats changed from 0.5 to 1.0 of goldleaf
+//     and its already a lot just trying to figure out the new tinfoil stuff
 }

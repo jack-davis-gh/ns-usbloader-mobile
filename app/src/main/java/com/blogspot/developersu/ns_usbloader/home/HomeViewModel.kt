@@ -4,8 +4,10 @@ import android.content.ContentResolver
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.Constraints
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
@@ -45,7 +47,7 @@ class HomeViewModel @Inject constructor(
 
     private val activeProtocol = settingsStore.settings
         .map { it.activeProto }
-        .stateIn(viewModelScope, Protocol.Tinfoil.USB)
+        .stateIn(viewModelScope, Protocol.TinfoilUSB)
 
     val state = combine(files, activeFiles, activeProtocol) { files, activeFiles, activeProtocol ->
         HomeScreenState.Success(
@@ -86,21 +88,39 @@ class HomeViewModel @Inject constructor(
         override fun onUploadFileClicked() {
             viewModelScope.launch {
                 if (usbManager.getNs().isSuccess) {
-                    files.collect { files ->
-                        val activeFiles = files.filter { it.name in activeFiles.value }
+                    files.combine(settingsStore.settings) { list, settings ->
+                        Pair(list, settings)
+                    }.collect { (files, settings) ->
+                        val activeNsFiles = files.filter { it.name in activeFiles.value }
+
                         val inputData = Data.Builder()
                             .putString(NsConstants.SERVICE_CONTENT_NSP_LIST,
-                                json.encodeToString(activeFiles))
+                                json.encodeToString(activeNsFiles))
+                            .putString(NsConstants.SERVICE_CONTENT_PROTOCOL,
+                                json.encodeToString(settings.activeProto))
+                            .putString(NsConstants.SERVICE_CONTENT_NS_DEVICE_IP, settings.nsIp)
+                            .putInt(NsConstants.SERVICE_CONTENT_PHONE_PORT, settings.phonePort)
                             .build()
 
-                        val request = OneTimeWorkRequestBuilder<CommunicationWorker>()
-                            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-                            .setInputData(inputData)
-                            .build()
+                        val request = when(settings.activeProto) {
+                            Protocol.TinfoilNET -> {
+                                val constraints = Constraints.Builder()
+                                    .setRequiredNetworkType(NetworkType.UNMETERED)
+                                    .build()
+
+                                OneTimeWorkRequestBuilder<CommunicationWorker>()
+                                    .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                                    .setConstraints(constraints)
+                            }
+
+                            Protocol.TinfoilUSB -> OneTimeWorkRequestBuilder<CommunicationWorker>()
+                                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+
+                        }.setInputData(inputData).build()
 
                         workManager.cancelAllWork()
                         workManager.enqueueUniqueWork(
-                            "USB Transfer",
+                            "Ns Transfer",
                             ExistingWorkPolicy.KEEP,
                             request
                         )

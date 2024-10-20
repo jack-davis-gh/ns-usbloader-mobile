@@ -113,9 +113,9 @@ fun SettingsScreen(
                     )
 
                     val protoOptions = listOf(
-                        Triple(Protocol.Tinfoil.USB, Icons.Outlined.Usb, stringResource(R.string.tf_usb)),
-                        Triple(Protocol.Tinfoil.NET, Icons.Outlined.Wifi, stringResource(R.string.tf_net)),
-                        Triple(Protocol.GoldLeafUSB, Icons.Outlined.Usb, "GoldLeaf USB")
+                        Triple(Protocol.TinfoilUSB, Icons.Outlined.Usb, stringResource(R.string.tf_usb)),
+                        Triple(Protocol.TinfoilNET, Icons.Outlined.Wifi, stringResource(R.string.tf_net)),
+//                        Triple(Protocol.GoldLeafUSB, Icons.Outlined.Usb, "GoldLeaf USB")
                     )
 
                     Text(
@@ -255,7 +255,7 @@ private fun SettingsScreenPreview() {
             state = SettingsUiState.Success(
                 Settings(
                     appTheme = 0,
-                    activeProto = Protocol.Tinfoil.USB,
+                    activeProto = Protocol.TinfoilUSB,
                     nsIp = "192.168.1.42",
                     autoIp = true,
                     phoneIp = "192.168.1.142",

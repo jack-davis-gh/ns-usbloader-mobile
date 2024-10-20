@@ -1,4 +1,4 @@
-package com.blogspot.developersu.ns_usbloader.service
+package com.blogspot.developersu.ns_usbloader.core.proto
 
 import com.blogspot.developersu.ns_usbloader.BuildConfig
 import java.text.SimpleDateFormat
@@ -42,7 +42,6 @@ object NETPacket {
             "Content-Type: text/html;charset=utf-8\r\n" +
             "Content-Length: 0\r\n\r\n"
 
-    @JvmStatic
     fun getCode200(nspFileSize: Long): String {
         return String.format(
             Locale.US, CODE_200,
@@ -50,7 +49,6 @@ object NETPacket {
         )
     }
 
-    @JvmStatic
     fun getCode206(nspFileSize: Long, startPos: Long, endPos: Long): String {
         return String.format(
             Locale.US, CODE_206,
@@ -58,15 +56,16 @@ object NETPacket {
         )
     }
 
-    @JvmStatic
+
     val code404: String
         get() = String.format(Locale.US, CODE_404, time)
-    @JvmStatic
+
     val code416: String
         get() = String.format(Locale.US, CODE_416, time)
-    @JvmStatic
+
     val code400: String
         get() = String.format(Locale.US, CODE_400, time)
+
     private val time: String
         get() {
             val sdf =

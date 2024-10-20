@@ -153,9 +153,9 @@ fun HomeScreenInner(
                     ) {
                         if (state.selectedFileNum == 0) {
                             val (protoIcon, protoStr) = when (state.activeProtocol) {
-                                Protocol.GoldLeafUSB -> Pair(Icons.Outlined.Usb, R.string.gl)
-                                Protocol.Tinfoil.NET -> Pair(Icons.Outlined.Wifi, R.string.tf_net)
-                                Protocol.Tinfoil.USB -> Pair(Icons.Outlined.Usb, R.string.tf_usb)
+//                                Protocol.GoldLeafUSB -> Pair(Icons.Outlined.Usb, R.string.gl)
+                                Protocol.TinfoilNET -> Pair(Icons.Outlined.Wifi, R.string.tf_net)
+                                Protocol.TinfoilUSB -> Pair(Icons.Outlined.Usb, R.string.tf_usb)
                             }
                             Icon(imageVector = protoIcon, contentDescription = null)
                             Text(stringResource(protoStr))
@@ -211,7 +211,7 @@ fun HomeScreenPreview() {
     AppTheme {
         HomeScreen(
             state = HomeScreenState.Success(
-                activeProtocol = Protocol.Tinfoil.USB,
+                activeProtocol = Protocol.TinfoilUSB,
                 files = emptyList(),
                 selectedFileNum = 1
             ),

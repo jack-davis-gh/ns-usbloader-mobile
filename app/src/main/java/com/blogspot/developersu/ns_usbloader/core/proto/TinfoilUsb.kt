@@ -121,7 +121,7 @@ class TinfoilUsb(
         try {
             val inputStream = files
                 .firstOrNull { it.name == receivedRequestedNSP }
-                ?.let { fileManager.openStreamFactory(it).getOrNull() }
+                ?.let { fileManager.openInputStream(it).getOrNull() }
                 ?: return Result.failure(Exception("Unable to open file."))
 
             val bufferedInStream = BufferedInputStream(inputStream)
