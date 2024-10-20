@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.blogspot.developersu.ns_usbloader"
+    namespace = "com.github.jack_davis_gh.ns_usbloader"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.blogspot.developersu.ns_usbloader"
+        applicationId = "com.github.jack_davis_gh.ns_usbloader"
         minSdk = 29
         targetSdk = 34
         versionCode = 7
