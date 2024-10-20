@@ -1,10 +1,10 @@
-package com.github.jack_davis_gh.ns_usbloader.core.proto.di
+package com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.di
 
 import android.content.Context
 import android.net.ConnectivityManager
 import com.github.jack_davis_gh.ns_usbloader.core.platform.file.FileManager
 import com.github.jack_davis_gh.ns_usbloader.core.platform.network.NetworkManager
-import com.github.jack_davis_gh.ns_usbloader.core.proto.TinfoilNet
+import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.TinfoilNet
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

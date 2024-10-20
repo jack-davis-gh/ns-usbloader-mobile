@@ -8,10 +8,10 @@ import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.github.jack_davis_gh.ns_usbloader.NsConstants
 import com.github.jack_davis_gh.ns_usbloader.NsConstants.json
-import com.github.jack_davis_gh.ns_usbloader.core.proto.TinfoilUsb
+import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.TinfoilUsb
 import com.github.jack_davis_gh.ns_usbloader.core.model.NSFile
 import com.github.jack_davis_gh.ns_usbloader.core.model.Protocol
-import com.github.jack_davis_gh.ns_usbloader.core.proto.TinfoilNet
+import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.TinfoilNet
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.coroutineScope

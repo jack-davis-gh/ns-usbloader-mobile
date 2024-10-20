@@ -6,8 +6,8 @@ import androidx.work.Configuration
 import androidx.work.ListenableWorker
 import androidx.work.WorkerFactory
 import androidx.work.WorkerParameters
-import com.github.jack_davis_gh.ns_usbloader.core.proto.TinfoilNet
-import com.github.jack_davis_gh.ns_usbloader.core.proto.TinfoilUsb
+import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.TinfoilNet
+import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.TinfoilUsb
 import com.github.jack_davis_gh.ns_usbloader.core.work_manager.CommunicationWorker
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject

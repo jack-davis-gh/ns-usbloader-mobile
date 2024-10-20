@@ -1,10 +1,10 @@
-package com.github.jack_davis_gh.ns_usbloader.core.proto.di
+package com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.di
 
 import android.content.Context
 import android.hardware.usb.UsbManager as AndroidUsbManager
 import com.github.jack_davis_gh.ns_usbloader.core.platform.file.FileManager
 import com.github.jack_davis_gh.ns_usbloader.core.platform.usb.UsbManager
-import com.github.jack_davis_gh.ns_usbloader.core.proto.TinfoilUsb
+import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.TinfoilUsb
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

@@ -1,10 +1,10 @@
-package com.github.jack_davis_gh.ns_usbloader.core.proto
+package com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol
 
-import com.github.jack_davis_gh.ns_usbloader.core.proto.NETPacket.code400
-import com.github.jack_davis_gh.ns_usbloader.core.proto.NETPacket.code404
-import com.github.jack_davis_gh.ns_usbloader.core.proto.NETPacket.code416
-import com.github.jack_davis_gh.ns_usbloader.core.proto.NETPacket.getCode200
-import com.github.jack_davis_gh.ns_usbloader.core.proto.NETPacket.getCode206
+import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.NETPacket.code400
+import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.NETPacket.code404
+import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.NETPacket.code416
+import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.NETPacket.getCode200
+import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.NETPacket.getCode206
 import com.github.jack_davis_gh.ns_usbloader.core.model.NSFile
 import com.github.jack_davis_gh.ns_usbloader.core.platform.file.FileManager
 import com.github.jack_davis_gh.ns_usbloader.core.platform.network.NetworkManager

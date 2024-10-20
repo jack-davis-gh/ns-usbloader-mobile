@@ -1,4 +1,4 @@
-package com.github.jack_davis_gh.ns_usbloader.core.proto
+package com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol
 
 import com.github.jack_davis_gh.ns_usbloader.core.model.NSFile
 import com.github.jack_davis_gh.ns_usbloader.core.platform.file.FileManager
