@@ -31,23 +31,21 @@ class CommunicationWorker @AssistedInject constructor(
 
         val filesJsonStr = inputData.getString(NsConstants.SERVICE_CONTENT_NSP_LIST) ?: return@coroutineScope Result.failure()
         val files: List<NSFile> = json.decodeFromString(filesJsonStr)
+
+        val nsIp = inputData.getString(NsConstants.SERVICE_CONTENT_NS_DEVICE_IP) ?: return@coroutineScope Result.failure()
+        val port = inputData.getInt(NsConstants.SERVICE_CONTENT_PHONE_PORT, 6024)
+
         setForeground(getForegroundInfo())
 
         when(proto) {
-            Protocol.TinfoilNET -> {
-                tinfoilNet.run(files, "", 200)
-            }
-            Protocol.TinfoilUSB -> {
-                tinfoilUsb.run(files)
-                    .onFailure {
-                        val outData = Data.Builder()
-                            .putString("TinfoilUsbWorker", it.message ?: "Unknown Exception")
-                            .build()
-                        return@coroutineScope Result.failure(outData)
-                    }
-            }
+            Protocol.TinfoilNET -> tinfoilNet.run(files, nsIp, port)
+            Protocol.TinfoilUSB -> tinfoilUsb.run(files)
+        }.onFailure {
+            val outData = Data.Builder()
+                .putString("CommunicationWorker", it.message ?: "Unknown Exception")
+                .build()
+            return@coroutineScope Result.failure(outData)
         }
-
 
         return@coroutineScope Result.success()
     }
