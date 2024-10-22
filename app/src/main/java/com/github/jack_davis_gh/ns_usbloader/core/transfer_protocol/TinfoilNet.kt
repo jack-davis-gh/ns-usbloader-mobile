@@ -19,6 +19,7 @@ import io.ktor.utils.io.readUTF8Line
 import io.ktor.utils.io.writeByteArray
 import io.ktor.utils.io.writeInt
 import io.ktor.utils.io.writeString
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
@@ -28,14 +29,15 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.io.BufferedInputStream
 import java.net.URLEncoder
-import java.util.LinkedList
 import java.util.Locale
 import javax.inject.Inject
+
+data class UsbTransferException(override val message: String): Exception(message)
 
 class TinfoilNet @Inject constructor(
     private val fileManager: FileManager,
     private val networkManager: NetworkManager
-): TransferProto {
+) {
     private val selectorManager = SelectorManager(Dispatchers.IO)
     private var files: Map<String, NSFile> = emptyMap()
 
@@ -46,24 +48,19 @@ class TinfoilNet @Inject constructor(
 
     suspend fun run(nsFiles: List<NSFile>, nsIp: String, phonePort: Int): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-//            open()
-//                .getOrThrow()
-//                .onFailure { return Result.failure(it) }
+            open(phonePort)
 
             files = nsFiles.associateBy { URLEncoder.encode(it.name, "UTF-8")
                 .replace("\\+".toRegex(), "%20") }
 
-            sendFileList(nsIp)
-                .getOrThrow()
+            sendFileList(nsIp, phonePort)
 
             serveRequestsLoop()
-                .getOrThrow()
         } catch (e: Exception) {
             return@withContext Result.failure(Exception("NET: Unable to connect to NS and send files list: " + e.message))
+        } finally {
+            close() // Closing server socket.
         }
-//        finally {
-//            close() // Closing server socket.
-//        }
 
         return@withContext Result.success(Unit)
     }
@@ -71,21 +68,19 @@ class TinfoilNet @Inject constructor(
     /**
      * Simple constructor that everybody uses
      */
-    private val phonePort = 6024
-    override fun open(): Result<Unit> = runBlocking {
+    private fun open(phonePort: Int) = runBlocking {
         // Open Server Socket on port
         try {
             mutex.withLock {
                 serverSocket = aSocket(selectorManager).tcp().bind(port = phonePort)
             }
         } catch (e: Exception) {
-            return@runBlocking Result.failure(Exception("NET: Can't open socket using port: " + phonePort + ". Returned: " + e.message))
+            throw UsbTransferException("NET: Can't open socket using port: " + phonePort + ". Returned: " + e.message)
         }
-        return@runBlocking Result.success(Unit)
     }
 
-    private fun sendFileList(nsIp: String): Result<Unit> = runBlocking {
-        val phoneIp = networkManager.getIpAddress() ?: return@runBlocking Result.failure(Exception("Can't get IP Address"))
+    private fun sendFileList(nsIp: String, phonePort: Int) = runBlocking {
+        val phoneIp = networkManager.getIpAddress() ?: throw UsbTransferException("Can't get IP Address")
         // Collect and encode NSP files list
         val handshakeCommandStr = buildString {
             files.keys.forEach { encodedName ->
@@ -94,27 +89,22 @@ class TinfoilNet @Inject constructor(
             }
         }
 
-        try {
-            val socket = withTimeout(1_000) {
-                aSocket(selectorManager).tcp().connect(nsIp, 2000)
-            }
-
-            socket.openWriteChannel(autoFlush = true).apply {
-                writeInt(handshakeCommandStr.length)
-                writeString(handshakeCommandStr)
-            }
-
-            socket.close()
-        } catch (e: Exception) {
-            return@runBlocking Result.failure(Exception("NET: Unable to send files list: " + e.message))
+        val socket = withTimeout(1_000) {
+            aSocket(selectorManager).tcp().connect(nsIp, 2000)
         }
-        return@runBlocking Result.success(Unit)
+
+        socket.openWriteChannel(autoFlush = true).apply {
+            writeInt(handshakeCommandStr.length)
+            writeString(handshakeCommandStr)
+        }
+
+        socket.close()
     }
 
-    private suspend fun serveRequestsLoop(): Result<Unit> = withContext(Dispatchers.IO) {
+    private suspend fun serveRequestsLoop() = withContext(Dispatchers.IO) {
         while (coroutineContext.isActive) {
             val clientSocket = serverSocket?.accept()
-                ?: return@withContext Result.failure(Exception("ServerSocket is not open, unable to accept"))
+                ?: throw UsbTransferException("ServerSocket is not open, unable to accept")
 
             clientSocket.use {
                 mutex.withLock {
@@ -122,61 +112,57 @@ class TinfoilNet @Inject constructor(
                     writerChannel = clientSocket.openWriteChannel(autoFlush = false)
                 }
 
-                val tcpPacket = LinkedList<String>()
+                val tcpPacket = mutableListOf<String>()
                 while (coroutineContext.isActive) {
                     val line = receiveChannel?.readUTF8Line() ?: break
 
                     if (line.trim { it <= ' ' }.isEmpty()) {          // If TCP packet is ended
                         handleRequest(tcpPacket) // Proceed required things
+
                         tcpPacket.clear() // Clear data and wait for next TCP packet
                     } else tcpPacket.add(line) // Otherwise collect data
                 }
             }
         }
-        return@withContext Result.success(Unit)
     }
     // 200 206 400 (inv range) 404 416 (Range Not Satisfiable )
     /**
      * Handle requests
      */
-    private suspend fun handleRequest(packet: LinkedList<String>): Result<Unit> {
-        if (packet[0].startsWith("DROP")) {
-//            jobInProgress = false TODO Probably pass as a result and bubble up
-            return Result.success(Unit)
+    private suspend fun handleRequest(packet: List<String>) {
+        val header = packet.first()
+        if (header.startsWith("DROP")) {
+            throw CancellationException("Drop command received")
         }
 
-        val reqFileName = packet[0].replace("(^[A-z\\s]+/)|(\\s+?.*$)".toRegex(), "")
+        val reqFileName = header.replace("(^[A-z\\s]+/)|(\\s+?.*$)".toRegex(), "")
 
         if (!files.containsKey(reqFileName)) {
             writeToSocket(code404)
-            return Result.success(Unit)
+            throw UsbTransferException("Failed to find file.")
         }
-        val requestedElement = files[reqFileName] ?: return Result.failure(Exception("NPE when trying to get file by name."))
+        val requestedElement = files[reqFileName] ?: throw UsbTransferException("NPE when trying to get file by name.")
 
         val reqFileSize = requestedElement.size
 
         if (reqFileSize == 0L) {   // well.. tell 404 if file exists with 0 length is against standard, but saves time
             writeToSocket(code404)
-//            requestedElement.status =
-//                context.resources.getString(R.string.status_failed_to_upload)
-            return Result.success(Unit)
+            throw UsbTransferException("File size is empty.")
         }
-        if (packet[0].startsWith("HEAD")) {
+        if (header.startsWith("HEAD")) {
             writeToSocket(getCode200(reqFileSize))
-            return Result.success(Unit)
+            return
         }
-        if (packet[0].startsWith("GET")) {
-            for (line in packet) {
+        if (header.startsWith("GET")) {
+            packet.forEach { line ->
                 if (line.lowercase(Locale.getDefault()).startsWith("range")) {
                     parseGETrange(requestedElement, reqFileSize, line)
-                    return Result.success(Unit)
+                    return
                 }
             }
         }
-        return Result.success(Unit)
     }
 
-    @Throws(Exception::class)
     private suspend fun parseGETrange(
         requestedElement: NSFile,
         fileSize: Long,
@@ -233,14 +219,13 @@ class TinfoilNet @Inject constructor(
     }
 
     /** Send files  */
-    @Throws(Exception::class)
-    private suspend fun writeToSocket(nspElem: NSFile, start: Long, end: Long): Result<Unit> = withContext(Dispatchers.IO) {
+    private suspend fun writeToSocket(nspElem: NSFile, start: Long, end: Long) = withContext(Dispatchers.IO) {
         writeToSocket(getCode206(nspElem.size, start, end))
         try {
             val count = end - start + 1 // Meeh. Somehow it works
 
             val elementInputStream = fileManager.openInputStream(nspElem)
-                .getOrElse { return@withContext Result.failure(Exception("NET Unable to obtain input stream")) }
+                .getOrElse { throw UsbTransferException("NET Unable to obtain input stream") }
 
             val bis = BufferedInputStream(elementInputStream)
 
@@ -248,8 +233,7 @@ class TinfoilNet @Inject constructor(
             var byteBuf: ByteArray
 
             if (bis.skip(start) != start) {
-//                nspElem.status = context.resources.getString(R.string.status_failed_to_upload)
-                return@withContext Result.failure(Exception("NET: Unable to skip requested range"))
+                throw UsbTransferException("NET: Unable to skip requested range")
             }
             var currentOffset: Long = 0
             while (coroutineContext.isActive && currentOffset < count) {
@@ -272,8 +256,6 @@ class TinfoilNet @Inject constructor(
             bis.close()
 //            resetProgressBar()
         } catch (e: Exception) {
-//            nspElem.status =
-//                context.resources.getString(R.string.status_failed_to_upload) // TODO: REDUNDANT?
             return@withContext Result.failure(Exception("NET: File transmission failed. Returned: " + e.message))
         }
         return@withContext Result.success(Unit)
@@ -282,7 +264,7 @@ class TinfoilNet @Inject constructor(
     /**
      * Close when done
      */
-    override fun close(): Result<Unit> = runBlocking {
+    private fun close(): Result<Unit> = runBlocking {
 //        status = if (isFailed) context.resources.getString(R.string.status_failed_to_upload)
 //        else context.resources.getString(R.string.status_unkown)
         mutex.withLock {

@@ -122,7 +122,7 @@ class HomeViewModel @Inject constructor(
 
                 }.setInputData(inputData).build()
 
-                if (settings.activeProto == Protocol.TinfoilNET || (settings.activeProto == Protocol.TinfoilUSB && usbManager.getNs().isSuccess)) {
+                if (settings.activeProto == Protocol.TinfoilNET || (settings.activeProto == Protocol.TinfoilUSB && usbManager.getNs() != null)) {
                     workManager.cancelAllWork()
                     workManager.enqueueUniqueWork(
                         "Ns Transfer",

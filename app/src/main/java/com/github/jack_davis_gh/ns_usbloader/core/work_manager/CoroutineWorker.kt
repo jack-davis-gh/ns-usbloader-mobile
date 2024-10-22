@@ -15,7 +15,7 @@ import com.github.jack_davis_gh.ns_usbloader.MainActivity
 import com.github.jack_davis_gh.ns_usbloader.NsConstants
 import com.github.jack_davis_gh.ns_usbloader.R
 
-fun CoroutineWorker.createForegroundInfo(): ForegroundInfo {
+fun CoroutineWorker.createForegroundInfo(downloadProgress: Int? = null): ForegroundInfo {
     val notificationManager = applicationContext.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
     // This PendingIntent can be used to cancel the worker
     val intent = WorkManager.getInstance(applicationContext)
@@ -28,6 +28,7 @@ fun CoroutineWorker.createForegroundInfo(): ForegroundInfo {
         NotificationManager.IMPORTANCE_DEFAULT
     ).apply {
         description = applicationContext.getString(R.string.notification_chan_desc_usb)
+        enableVibration(false)
     }
     // Register the channel with the system. You can't change the importance
     // or other notification behaviors after this.
@@ -39,6 +40,7 @@ fun CoroutineWorker.createForegroundInfo(): ForegroundInfo {
         .setSmallIcon(R.drawable.ic_notification)
         .setOngoing(true)
         .setPriority(NotificationCompat.PRIORITY_LOW)
+        .setVibrate(null)
         // Add the cancel action to the notification which can
         // be used to cancel the worker
         .addAction(android.R.drawable.ic_delete, "Cancel", intent)
@@ -50,9 +52,12 @@ fun CoroutineWorker.createForegroundInfo(): ForegroundInfo {
                 ), FLAG_IMMUTABLE
             )
         )
-        .build()
+
+    if (downloadProgress != null) {
+        notification.setProgress(100, downloadProgress, false)
+    }
 
     return ForegroundInfo(
-        NsConstants.NOTIFICATION_TRANSFER_ID, notification, FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+        NsConstants.NOTIFICATION_TRANSFER_ID, notification.build(), FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
     )
 }

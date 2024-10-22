@@ -6,6 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import com.github.jack_davis_gh.ns_usbloader.NsConstants
 import com.github.jack_davis_gh.ns_usbloader.NsConstants.json
 import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.TinfoilUsb
@@ -16,6 +17,10 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
 
 @HiltWorker
 class CommunicationWorker @AssistedInject constructor(
@@ -36,18 +41,24 @@ class CommunicationWorker @AssistedInject constructor(
         val nsIp = inputData.getString(NsConstants.SERVICE_CONTENT_NS_DEVICE_IP) ?: return@coroutineScope Result.failure()
         val port = inputData.getInt(NsConstants.SERVICE_CONTENT_PHONE_PORT, 6024)
 
-        setForeground(getForegroundInfo())
+        setForeground(createForegroundInfo())
 
+        val channel = Channel<Int>()
+        val scope = CoroutineScope(Dispatchers.IO)
         try {
-            tinfoilNet.open()
-                .getOrThrow()
+            scope.launch {
+                when(proto) {
+                    Protocol.TinfoilNET -> tinfoilNet.run(files, nsIp, port)
+                    Protocol.TinfoilUSB -> tinfoilUsb.run(files, channel)
+                }
+            }
 
-            tinfoilNet.run(files, nsIp, port)
-                .getOrThrow()
+            for (progress in channel) {
+                setProgress(workDataOf("Progress" to progress))
+                setForegroundAsync(createForegroundInfo(progress))
+            }
+            channel.close()
         } catch (e: CancellationException) {
-            val outData = Data.Builder()
-                .putString("CommunicationWorker", e.message ?: "Unknown Exception")
-                .build()
             return@coroutineScope Result.success()
         } catch (e: Exception) {
             val outData = Data.Builder()
@@ -55,14 +66,8 @@ class CommunicationWorker @AssistedInject constructor(
                 .build()
             return@coroutineScope Result.failure(outData)
         } finally {
-            tinfoilNet.close()
+            channel.close()
         }
-
-//        when(proto) {
-//            Protocol.TinfoilNET -> tinfoilNet.run(files, nsIp, port)
-//            Protocol.TinfoilUSB -> tinfoilUsb.run(files)
-//        }
-
 
         return@coroutineScope Result.success()
     }
