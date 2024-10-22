@@ -8,136 +8,132 @@ import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.NETPacket.co
 import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.NETPacket.code416
 import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.NETPacket.getCode200
 import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.NETPacket.getCode206
+import io.ktor.network.selector.SelectorManager
+import io.ktor.network.sockets.ServerSocket
+import io.ktor.network.sockets.aSocket
+import io.ktor.network.sockets.openReadChannel
+import io.ktor.network.sockets.openWriteChannel
+import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.ByteWriteChannel
+import io.ktor.utils.io.readUTF8Line
+import io.ktor.utils.io.writeByteArray
+import io.ktor.utils.io.writeInt
+import io.ktor.utils.io.writeString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.io.BufferedInputStream
-import java.io.BufferedReader
-import java.io.IOException
-import java.io.InputStreamReader
-import java.io.OutputStream
-import java.io.OutputStreamWriter
-import java.io.PrintWriter
-import java.net.InetAddress
-import java.net.InetSocketAddress
-import java.net.ServerSocket
-import java.net.Socket
 import java.net.URLEncoder
-import java.nio.ByteBuffer
 import java.util.LinkedList
 import java.util.Locale
 import javax.inject.Inject
-import kotlin.coroutines.coroutineContext
 
 class TinfoilNet @Inject constructor(
     private val fileManager: FileManager,
     private val networkManager: NetworkManager
-) {
+): TransferProto {
+    private val selectorManager = SelectorManager(Dispatchers.IO)
     private var files: Map<String, NSFile> = emptyMap()
 
+    private val mutex = Mutex()
     private var serverSocket: ServerSocket? = null
+    private var receiveChannel: ByteReadChannel? = null
+    private var writerChannel: ByteWriteChannel? = null
 
-    private var currSockOS: OutputStream? = null
-    private var currSockPW: PrintWriter? = null
-
-    suspend fun run(nsFiles: List<NSFile>, nsIp: String, phonePort: Int): Result<Unit> {
+    suspend fun run(nsFiles: List<NSFile>, nsIp: String, phonePort: Int): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            open(phonePort)
-                .onFailure { return Result.failure(it) }
+//            open()
+//                .getOrThrow()
+//                .onFailure { return Result.failure(it) }
 
             files = nsFiles.associateBy { URLEncoder.encode(it.name, "UTF-8")
                 .replace("\\+".toRegex(), "%20") }
 
-            val phoneIp = networkManager.getIpAddress() ?: return Result.failure(Exception("Can't get IP Address"))
-            // Collect and encode NSP files list
-            val handshakeCommandStr = buildString {
-                files.keys.forEach { encodedName ->
-                    append("$phoneIp:$phonePort/")
-                    append("$encodedName\n")
-                }
-            }
-
-            val handshakeCommand = handshakeCommandStr.toByteArray() // android's .getBytes() default == UTF8  // Follow the
-
-            val handshakeCommandSize = ByteBuffer.allocate(4)
-                .putInt(handshakeCommand.size)
-                .array() // defining order ; Integer size = 4 bytes
-
-            sendHandshake(nsIp, handshakeCommandSize, handshakeCommand)
-                .onFailure { return Result.failure(it) }
+            sendFileList(nsIp)
+                .getOrThrow()
 
             serveRequestsLoop()
-                .onFailure {
-                    return Result.failure(it)
-                }
+                .getOrThrow()
         } catch (e: Exception) {
-            return Result.failure(Exception("NET: Unable to connect to NS and send files list: " + e.message))
-        } finally {
-            close() // Closing server socket.
+            return@withContext Result.failure(Exception("NET: Unable to connect to NS and send files list: " + e.message))
         }
+//        finally {
+//            close() // Closing server socket.
+//        }
 
-        return Result.success(Unit)
+        return@withContext Result.success(Unit)
     }
 
     /**
      * Simple constructor that everybody uses
      */
-    private fun open(phonePort: Int): Result<Unit> {
+    private val phonePort = 6024
+    override fun open(): Result<Unit> = runBlocking {
         // Open Server Socket on port
         try {
-            serverSocket = ServerSocket(phonePort)
-        } catch (ioe: IOException) {
-            return Result.failure(Exception("NET: Can't open socket using port: " + phonePort + ". Returned: " + ioe.message))
+            mutex.withLock {
+                serverSocket = aSocket(selectorManager).tcp().bind(port = phonePort)
+            }
+        } catch (e: Exception) {
+            return@runBlocking Result.failure(Exception("NET: Can't open socket using port: " + phonePort + ". Returned: " + e.message))
         }
-        return Result.success(Unit)
+        return@runBlocking Result.success(Unit)
     }
 
-    private fun sendHandshake(nsIp: String, handshakeCommandSize: ByteArray, handshakeCommand: ByteArray): Result<Unit> {
+    private fun sendFileList(nsIp: String): Result<Unit> = runBlocking {
+        val phoneIp = networkManager.getIpAddress() ?: return@runBlocking Result.failure(Exception("Can't get IP Address"))
+        // Collect and encode NSP files list
+        val handshakeCommandStr = buildString {
+            files.keys.forEach { encodedName ->
+                append("$phoneIp:$phonePort/")
+                append("$encodedName\n")
+            }
+        }
+
         try {
-            val handShakeSocket = Socket()
-            handShakeSocket.connect(
-                InetSocketAddress(InetAddress.getByName(nsIp), 2000),
-                1000
-            ) // e.g. 1sec
-            val os = handShakeSocket.getOutputStream()
-            os.write(handshakeCommandSize)
-            os.write(handshakeCommand)
-            os.flush()
+            val socket = withTimeout(1_000) {
+                aSocket(selectorManager).tcp().connect(nsIp, 2000)
+            }
 
-            handShakeSocket.close()
-        } catch (uhe: IOException) {
-            return Result.failure(Exception("NET: Unable to send files list: " + uhe.message))
+            socket.openWriteChannel(autoFlush = true).apply {
+                writeInt(handshakeCommandStr.length)
+                writeString(handshakeCommandStr)
+            }
+
+            socket.close()
+        } catch (e: Exception) {
+            return@runBlocking Result.failure(Exception("NET: Unable to send files list: " + e.message))
         }
-        return Result.success(Unit)
+        return@runBlocking Result.success(Unit)
     }
 
-    private suspend fun serveRequestsLoop(): Result<Unit> {
+    private suspend fun serveRequestsLoop(): Result<Unit> = withContext(Dispatchers.IO) {
         while (coroutineContext.isActive) {
-            val clientSocket = withContext(Dispatchers.IO) {
-                    serverSocket?.accept()
-                } ?: return Result.failure(Exception("ServerSocket is not open, unable to accept"))
+            val clientSocket = serverSocket?.accept()
+                ?: return@withContext Result.failure(Exception("ServerSocket is not open, unable to accept"))
 
-            val br = withContext(Dispatchers.IO) {
-                BufferedReader(
-                    InputStreamReader(clientSocket.getInputStream())
-                )
+            clientSocket.use {
+                mutex.withLock {
+                    receiveChannel = clientSocket.openReadChannel()
+                    writerChannel = clientSocket.openWriteChannel(autoFlush = false)
+                }
+
+                val tcpPacket = LinkedList<String>()
+                while (coroutineContext.isActive) {
+                    val line = receiveChannel?.readUTF8Line() ?: break
+
+                    if (line.trim { it <= ' ' }.isEmpty()) {          // If TCP packet is ended
+                        handleRequest(tcpPacket) // Proceed required things
+                        tcpPacket.clear() // Clear data and wait for next TCP packet
+                    } else tcpPacket.add(line) // Otherwise collect data
+                }
             }
-
-            currSockOS = withContext(Dispatchers.IO) { clientSocket.getOutputStream() }
-            currSockPW = PrintWriter(OutputStreamWriter(currSockOS))
-
-            var line = ""
-            val tcpPacket = LinkedList<String>()
-
-            while (coroutineContext.isActive && withContext(Dispatchers.IO) { br.readLine() }.also { line = it } != null) {
-                if (line.trim { it <= ' ' }.isEmpty()) {          // If TCP packet is ended
-                    handleRequest(tcpPacket) // Proceed required things
-                    tcpPacket.clear() // Clear data and wait for next TCP packet
-                } else tcpPacket.add(line) // Otherwise collect data
-            }
-            withContext(Dispatchers.IO) { clientSocket.close() }
         }
-        return Result.success(Unit)
+        return@withContext Result.success(Unit)
     }
     // 200 206 400 (inv range) 404 416 (Range Not Satisfiable )
     /**
@@ -231,29 +227,29 @@ class TinfoilNet @Inject constructor(
     }
 
     /** Send commands  */
-    private fun writeToSocket(string: String) {
-        currSockPW?.write(string)
-        currSockPW?.flush()
+    private suspend fun writeToSocket(string: String) {
+        writerChannel?.writeString(string)
+        writerChannel?.flush()
     }
 
     /** Send files  */
     @Throws(Exception::class)
-    private suspend fun writeToSocket(nspElem: NSFile, start: Long, end: Long): Result<Unit> {
+    private suspend fun writeToSocket(nspElem: NSFile, start: Long, end: Long): Result<Unit> = withContext(Dispatchers.IO) {
         writeToSocket(getCode206(nspElem.size, start, end))
         try {
             val count = end - start + 1 // Meeh. Somehow it works
 
             val elementInputStream = fileManager.openInputStream(nspElem)
-                .getOrElse { return Result.failure(Exception("NET Unable to obtain input stream")) }
+                .getOrElse { return@withContext Result.failure(Exception("NET Unable to obtain input stream")) }
 
             val bis = BufferedInputStream(elementInputStream)
 
             var readPice = 4194304 //8388608;// = 8Mb (1024 is slow)
             var byteBuf: ByteArray
 
-            if (withContext(Dispatchers.IO) { bis.skip(start) } != start) {
+            if (bis.skip(start) != start) {
 //                nspElem.status = context.resources.getString(R.string.status_failed_to_upload)
-                return Result.failure(Exception("NET: Unable to skip requested range"))
+                return@withContext Result.failure(Exception("NET: Unable to skip requested range"))
             }
             var currentOffset: Long = 0
             while (coroutineContext.isActive && currentOffset < count) {
@@ -262,35 +258,37 @@ class TinfoilNet @Inject constructor(
                 }
                 byteBuf = ByteArray(readPice)
 
-                if (withContext(Dispatchers.IO) { bis.read(byteBuf) } != readPice) {
-                    return Result.failure(Exception("NET: Reading from file stream suddenly ended"))
+                if (bis.read(byteBuf) != readPice) {
+                    return@withContext Result.failure(Exception("NET: Reading from file stream suddenly ended"))
                 }
-                withContext(Dispatchers.IO) { currSockOS?.write(byteBuf) }
+                writerChannel?.writeByteArray(byteBuf) ?: break
 
                 currentOffset += readPice.toLong()
 
 //                updateProgressBar((currentOffset.toDouble() / (count.toDouble() / 100.0)).toInt())
             }
-            withContext(Dispatchers.IO) {
-                currSockOS?.flush() // TODO: check if this really needed.
-                bis.close()
-            }
+
+            writerChannel?.flush() // TODO: check if this really needed.
+            bis.close()
 //            resetProgressBar()
-        } catch (ioe: IOException) {
+        } catch (e: Exception) {
 //            nspElem.status =
 //                context.resources.getString(R.string.status_failed_to_upload) // TODO: REDUNDANT?
-            return Result.failure(Exception("NET: File transmission failed. Returned: " + ioe.message))
+            return@withContext Result.failure(Exception("NET: File transmission failed. Returned: " + e.message))
         }
-        return Result.success(Unit)
+        return@withContext Result.success(Unit)
     }
 
     /**
      * Close when done
      */
-    private fun close() {
+    override fun close(): Result<Unit> = runBlocking {
 //        status = if (isFailed) context.resources.getString(R.string.status_failed_to_upload)
 //        else context.resources.getString(R.string.status_unkown)
-        serverSocket?.close()
-        serverSocket = null
+        mutex.withLock {
+            serverSocket?.close() ?: return@runBlocking Result.failure(Exception("Socket already closed"))
+            serverSocket = null
+        }
+        return@runBlocking Result.success(Unit)
     }
 }

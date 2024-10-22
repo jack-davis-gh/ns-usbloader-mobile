@@ -9,12 +9,13 @@ hilt-navigation-fragment = "1.2.0"
 kotlin = "2.0.21"
 kotlin-coroutines = "1.9.0"
 agp = "8.7.1"
-kotlinx-serialization-json = "1.7.1"
+kotlinx-serialization-json = "1.7.3"
 ksp = "2.0.21-1.0.25"
 compose-bom = "2024.10.00"
 hilt = "2.52"
 hilt-work = "1.2.0"
 room = "2.6.1"
+ktor = "3.0.0"
 
 lifecycle-viewmodel-compose = "2.8.6"
 material = "1.12.0"
@@ -54,6 +55,7 @@ room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
+ktor-network = { group = "io.ktor", name = "ktor-network", version.ref = "ktor" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

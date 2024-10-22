@@ -1,7 +1,6 @@
 package com.github.jack_davis_gh.ns_usbloader.home
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -160,9 +159,11 @@ fun HomeScreenInner(
                             Icon(imageVector = protoIcon, contentDescription = null)
                             Text(stringResource(protoStr))
                         } else {
-                            Icon(
-                                modifier = Modifier.clickable { callbacks.onClearSelected() },
-                                imageVector = Icons.Outlined.Cancel, contentDescription = null)
+                            IconButton(onClick = callbacks::onClearSelected) {
+                                Icon(imageVector = Icons.Outlined.Cancel,
+                                    contentDescription = null)
+                            }
+
                             Text("${state.selectedFileNum} Selected")
                         }
                     }

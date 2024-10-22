@@ -1,6 +1,5 @@
 package com.github.jack_davis_gh.ns_usbloader.home.ui
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -25,7 +24,8 @@ fun HomeFileCard(
     onFileClicked: (NSFile) -> Unit = {}
 ) {
     Card(
-        modifier = modifier.clickable { onFileClicked(file) }
+        modifier = modifier,
+        onClick = { onFileClicked(file) }
     ) {
         Row(modifier = Modifier.padding(10.dp),
             verticalAlignment = Alignment.CenterVertically) {

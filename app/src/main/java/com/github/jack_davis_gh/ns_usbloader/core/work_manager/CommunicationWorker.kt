@@ -15,6 +15,7 @@ import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.TinfoilNet
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.CancellationException
 
 @HiltWorker
 class CommunicationWorker @AssistedInject constructor(
@@ -37,15 +38,31 @@ class CommunicationWorker @AssistedInject constructor(
 
         setForeground(getForegroundInfo())
 
-        when(proto) {
-            Protocol.TinfoilNET -> tinfoilNet.run(files, nsIp, port)
-            Protocol.TinfoilUSB -> tinfoilUsb.run(files)
-        }.onFailure {
+        try {
+            tinfoilNet.open()
+                .getOrThrow()
+
+            tinfoilNet.run(files, nsIp, port)
+                .getOrThrow()
+        } catch (e: CancellationException) {
             val outData = Data.Builder()
-                .putString("CommunicationWorker", it.message ?: "Unknown Exception")
+                .putString("CommunicationWorker", e.message ?: "Unknown Exception")
+                .build()
+            return@coroutineScope Result.success()
+        } catch (e: Exception) {
+            val outData = Data.Builder()
+                .putString("CommunicationWorker", e.message ?: "Unknown Exception")
                 .build()
             return@coroutineScope Result.failure(outData)
+        } finally {
+            tinfoilNet.close()
         }
+
+//        when(proto) {
+//            Protocol.TinfoilNET -> tinfoilNet.run(files, nsIp, port)
+//            Protocol.TinfoilUSB -> tinfoilUsb.run(files)
+//        }
+
 
         return@coroutineScope Result.success()
     }
