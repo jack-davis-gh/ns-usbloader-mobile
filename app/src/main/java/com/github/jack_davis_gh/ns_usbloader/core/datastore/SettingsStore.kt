@@ -12,11 +12,13 @@ import com.github.jack_davis_gh.ns_usbloader.core.model.Settings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
-import javax.inject.Inject
+import me.tatarka.inject.annotations.Inject
 
-class SettingsStore @Inject constructor(
+@Inject
+class SettingsStore(
     private val dataStore: DataStore<Preferences>
 ) {
+
     companion object {
         val APP_THEME = intPreferencesKey("APP_THEME")
         val PROTO = stringPreferencesKey("PROTO")

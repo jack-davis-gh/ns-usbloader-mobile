@@ -27,14 +27,15 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import me.tatarka.inject.annotations.Inject
 import java.io.BufferedInputStream
 import java.net.URLEncoder
 import java.util.Locale
-import javax.inject.Inject
 
 data class UsbTransferException(override val message: String): Exception(message)
 
-class TinfoilNet @Inject constructor(
+@Inject
+class TinfoilNet(
     private val fileManager: FileManager,
     private val networkManager: NetworkManager
 ) {

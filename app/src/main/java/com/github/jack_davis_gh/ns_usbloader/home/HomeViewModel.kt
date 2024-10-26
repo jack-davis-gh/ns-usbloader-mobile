@@ -20,7 +20,6 @@ import com.github.jack_davis_gh.ns_usbloader.core.model.NSFile
 import com.github.jack_davis_gh.ns_usbloader.core.model.Protocol
 import com.github.jack_davis_gh.ns_usbloader.core.platform.usb.UsbManager
 import com.github.jack_davis_gh.ns_usbloader.core.work_manager.CommunicationWorker
-import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -28,10 +27,10 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
-import javax.inject.Inject
+import me.tatarka.inject.annotations.Inject
 
-@HiltViewModel
-class HomeViewModel @Inject constructor(
+@Inject
+class HomeViewModel(
     private val usbManager: UsbManager,
     private val workManager: WorkManager,
     private val fileRepo: FileRepo,

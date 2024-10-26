@@ -9,10 +9,12 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import me.tatarka.inject.annotations.Inject
 import kotlin.coroutines.coroutineContext
 
 data class UsbManagerException(override val message: String): Exception(message)
 
+@Inject
 class UsbManager(
     private val usbManager: AndroidUsbManager
 ) {

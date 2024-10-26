@@ -2,7 +2,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.serialization)
 }
@@ -22,6 +21,8 @@ android {
         vectorDrawables.useSupportLibrary = true
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas")
+            arg("KOIN_CONFIG_CHECK","true")
+            arg("KOIN_USE_COMPOSE_VIEWMODEL","true")
         }
     }
 
@@ -93,11 +94,8 @@ dependencies {
 //    androidTestImplementation("androidx.test.espresso:espresso-core:3.3.0")
     implementation(libs.work.manager)
 
-    implementation(libs.hilt.navigation.fragment)
-    implementation(libs.hilt.navigation.compose)
-    implementation(libs.hilt.android)
-    implementation(libs.hilt.work)
-    ksp(libs.hilt.android.compiler)
+    implementation(libs.kotlin.inject.runtime)
+    ksp(libs.kotlin.inject.compiler)
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlin.coroutines.android)

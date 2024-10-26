@@ -5,14 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.github.jack_davis_gh.ns_usbloader.core.datastore.SettingsStore
 import com.github.jack_davis_gh.ns_usbloader.core.model.Protocol
 import com.github.jack_davis_gh.ns_usbloader.core.model.Settings
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+import me.tatarka.inject.annotations.Inject
 
 sealed interface SettingsUiState {
     data class Success(val settings: Settings): SettingsUiState
@@ -31,10 +30,8 @@ interface SettingsPrefsUpdateCallback {
     fun updatePhonePort(port: Int) {}
 }
 
-
-
-@HiltViewModel
-class SettingsViewModel @Inject constructor(
+@Inject
+class SettingsViewModel(
     private val settingsStore: SettingsStore
 ): ViewModel(), SettingsPrefsUpdateCallback {
     val state: StateFlow<SettingsUiState> = settingsStore.settings

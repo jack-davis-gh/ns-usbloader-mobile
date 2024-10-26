@@ -9,12 +9,14 @@ import androidx.work.WorkerParameters
 import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.TinfoilNet
 import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.TinfoilUsb
 import com.github.jack_davis_gh.ns_usbloader.core.work_manager.CommunicationWorker
-import dagger.hilt.android.HiltAndroidApp
-import javax.inject.Inject
+import me.tatarka.inject.annotations.Inject
 
-@HiltAndroidApp
 class NSUsbloaderApplication: Application(), Configuration.Provider {
-    @Inject lateinit var workerFactory: NSUsbloaderFactory
+    val component: ApplicationComponent by lazy {
+        ApplicationComponent::class.create(this@NSUsbloaderApplication)
+    }
+
+    private val workerFactory: NSUsbloaderFactory by lazy(component::nsWorkerFactory)
 
     override val workManagerConfiguration by lazy {
         Configuration.Builder()
@@ -24,7 +26,8 @@ class NSUsbloaderApplication: Application(), Configuration.Provider {
     }
 }
 
-class NSUsbloaderFactory @Inject constructor(
+@Inject
+class NSUsbloaderFactory(
     private val tinfoilUsb: TinfoilUsb,
     private val tinfoilNet: TinfoilNet,
 ): WorkerFactory() {

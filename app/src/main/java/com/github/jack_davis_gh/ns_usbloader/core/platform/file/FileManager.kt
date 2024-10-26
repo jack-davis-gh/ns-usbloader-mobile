@@ -3,10 +3,11 @@ package com.github.jack_davis_gh.ns_usbloader.core.platform.file
 import android.content.ContentResolver
 import android.net.Uri
 import com.github.jack_davis_gh.ns_usbloader.core.model.NSFile
+import me.tatarka.inject.annotations.Inject
 import java.io.InputStream
-import javax.inject.Inject
 
-class FileManager @Inject constructor(
+@Inject
+class FileManager(
     private val contentResolver: ContentResolver
 ) {
     fun openInputStream(file: NSFile): Result<InputStream?> {

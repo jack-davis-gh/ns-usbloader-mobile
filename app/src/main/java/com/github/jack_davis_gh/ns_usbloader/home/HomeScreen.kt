@@ -30,8 +30,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.jack_davis_gh.ns_usbloader.R
 import com.github.jack_davis_gh.ns_usbloader.core.model.NSFile
 import com.github.jack_davis_gh.ns_usbloader.core.model.Protocol
@@ -46,6 +46,7 @@ import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
 import io.github.vinceglb.filekit.core.PlatformFile
+import me.tatarka.inject.annotations.Inject
 
 sealed interface HomeScreenState {
     data class Success(
@@ -72,13 +73,19 @@ interface HomeScreenCallbacks {
     }
 }
 
+interface HomeComponent {
+    val homeViewModel: () -> HomeViewModel
+}
+
 @SuppressLint("InlinedApi")
 @OptIn(ExperimentalPermissionsApi::class)
+@Inject
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel = hiltViewModel(),
+    homeViewModel: () -> HomeViewModel,
     onSettingsClicked: () -> Unit = {}
 ) {
+    val viewModel = viewModel { homeViewModel() }
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     // Notification Permission

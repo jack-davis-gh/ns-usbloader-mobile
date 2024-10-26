@@ -7,11 +7,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
+import me.tatarka.inject.annotations.Inject
 import java.io.BufferedInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.coroutines.coroutineContext
 
+@Inject
 class TinfoilUsb(
     private val transfer: UsbManager,
     private val fileManager: FileManager

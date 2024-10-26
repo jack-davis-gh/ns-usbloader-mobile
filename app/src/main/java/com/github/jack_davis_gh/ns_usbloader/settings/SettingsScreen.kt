@@ -41,21 +41,28 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.jack_davis_gh.ns_usbloader.R
 import com.github.jack_davis_gh.ns_usbloader.core.model.Protocol
 import com.github.jack_davis_gh.ns_usbloader.core.model.Settings
 import com.github.jack_davis_gh.ns_usbloader.settings.ui.SettingsTextNumberField
 import com.github.jack_davis_gh.ns_usbloader.ui.theme.ThemePreviews
 import com.github.jack_davis_gh.ns_usbloader.ui.theme.AppTheme
+import me.tatarka.inject.annotations.Inject
 
+interface SettingsComponent {
+    val settingsViewModel: () -> SettingsViewModel
+}
+
+@Inject
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier.fillMaxSize(),
-    viewModel: SettingsViewModel = hiltViewModel(),
-    onBackPressed: () -> Unit
+    settingsViewModel: () -> SettingsViewModel,
+    onBackPressed: () -> Unit = {}
 ) {
+    val viewModel = viewModel { settingsViewModel() }
     val uiState: SettingsUiState by viewModel.state.collectAsStateWithLifecycle()
     SettingsScreen(
         modifier = modifier,

@@ -1,7 +1,6 @@
 package com.github.jack_davis_gh.ns_usbloader.core.work_manager
 
 import android.content.Context
-import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.ForegroundInfo
@@ -13,8 +12,6 @@ import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.TinfoilUsb
 import com.github.jack_davis_gh.ns_usbloader.core.model.NSFile
 import com.github.jack_davis_gh.ns_usbloader.core.model.Protocol
 import com.github.jack_davis_gh.ns_usbloader.core.transfer_protocol.TinfoilNet
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -22,12 +19,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 
-@HiltWorker
-class CommunicationWorker @AssistedInject constructor(
-    @Assisted appContext: Context,
-    @Assisted workerParams: WorkerParameters,
-    @Assisted private val tinfoilUsb: TinfoilUsb,
-    @Assisted private val tinfoilNet: TinfoilNet,
+class CommunicationWorker(
+    appContext: Context,
+    workerParams: WorkerParameters,
+    private val tinfoilUsb: TinfoilUsb,
+    private val tinfoilNet: TinfoilNet,
 ): CoroutineWorker(appContext, workerParams) {
     override suspend fun getForegroundInfo(): ForegroundInfo = createForegroundInfo()
 
