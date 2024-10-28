@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.jack_davis_gh.ns_usbloader.core.datastore.SettingsStore
 import com.github.jack_davis_gh.ns_usbloader.core.model.Protocol
-import com.github.jack_davis_gh.ns_usbloader.core.model.Settings
+import com.github.jack_davis_gh.ns_usbloader.core.model.AppSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 import me.tatarka.inject.annotations.Inject
 
 sealed interface SettingsUiState {
-    data class Success(val settings: Settings): SettingsUiState
+    data class Success(val appSettings: AppSettings): SettingsUiState
     data object Loading: SettingsUiState
 }
 
@@ -22,7 +22,7 @@ interface SettingsPrefsUpdateCallback {
     companion object {
         val Empty = object : SettingsPrefsUpdateCallback {}
     }
-    fun updateThemeSelection(selection: Int) {}
+    fun updateThemeSelection(selection: AppSettings.Theme) {}
     fun updateProtocol(proto: Protocol) {}
     fun updateNsIp(ip: String) {}
     fun updateAutoIp(autoIp: Boolean) {}
@@ -33,8 +33,8 @@ interface SettingsPrefsUpdateCallback {
 @Inject
 class SettingsViewModel(
     private val settingsStore: SettingsStore
-): ViewModel(), SettingsPrefsUpdateCallback {
-    val state: StateFlow<SettingsUiState> = settingsStore.settings
+): ViewModel() {
+    val state: StateFlow<SettingsUiState> = settingsStore.appSettings
         .map { SettingsUiState.Success(it) }
         .stateIn(
             scope = viewModelScope,
@@ -46,8 +46,8 @@ class SettingsViewModel(
         viewModelScope.launch { block() }
     }
 
-    val updateCallbacks = object : SettingsPrefsUpdateCallback {
-        override fun updateThemeSelection(selection: Int) = updateSettings {
+    val updateStore = object : SettingsPrefsUpdateCallback {
+        override fun updateThemeSelection(selection: AppSettings.Theme) = updateSettings {
             settingsStore.update(appTheme = selection)
         }
 

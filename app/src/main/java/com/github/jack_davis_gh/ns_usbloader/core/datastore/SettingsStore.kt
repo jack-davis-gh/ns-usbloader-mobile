@@ -6,12 +6,10 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.github.jack_davis_gh.ns_usbloader.NsConstants.json
 import com.github.jack_davis_gh.ns_usbloader.core.model.Protocol
-import com.github.jack_davis_gh.ns_usbloader.core.model.Settings
+import com.github.jack_davis_gh.ns_usbloader.core.model.AppSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.encodeToString
 import me.tatarka.inject.annotations.Inject
 
 @Inject
@@ -21,17 +19,17 @@ class SettingsStore(
 
     companion object {
         val APP_THEME = intPreferencesKey("APP_THEME")
-        val PROTO = stringPreferencesKey("PROTO")
+        val PROTO = intPreferencesKey("PROTO")
         val NS_IP_KEY = stringPreferencesKey("NS_IP")
         val AUTO_IP_KEY = booleanPreferencesKey("AUTO_IP")
         val PHONE_IP_KEY = stringPreferencesKey("PHONE_IP")
         val PHONE_PORT_KEY = intPreferencesKey("PHONE_PORT")
     }
 
-    val settings: Flow<Settings> = dataStore.data.map { prefs ->
-        Settings(
-            appTheme = prefs[APP_THEME] ?: 0,
-            activeProto = prefs[PROTO]?.let { json.decodeFromString<Protocol>(it) } ?: Protocol.TinfoilUSB,
+    val appSettings: Flow<AppSettings> = dataStore.data.map { prefs ->
+        AppSettings(
+            theme = prefs[APP_THEME]?.let { AppSettings.Theme.entries[it] } ?: AppSettings.Theme.FollowSystem,
+            activeProto = prefs[PROTO]?.let { Protocol.entries[it] } ?: Protocol.USB,
             nsIp = prefs[NS_IP_KEY] ?: "192.168.1.42",
             autoIp = prefs[AUTO_IP_KEY] ?: true,
             phoneIp = prefs[PHONE_IP_KEY] ?: "192.168.1.142",
@@ -40,7 +38,7 @@ class SettingsStore(
     }
 
     suspend fun update(
-        appTheme: Int? = null,
+        appTheme: AppSettings.Theme? = null,
         activeProto: Protocol? = null,
         nsIp: String? = null,
         autoIp: Boolean? = null,
@@ -49,9 +47,9 @@ class SettingsStore(
     ) {
         dataStore.edit { prefs ->
             if (appTheme != null)
-                prefs[APP_THEME] = appTheme
+                prefs[APP_THEME] = appTheme.ordinal
             if (activeProto != null)
-                prefs[PROTO] = json.encodeToString(activeProto)
+                prefs[PROTO] = activeProto.ordinal
             if (nsIp != null)
                 prefs[NS_IP_KEY] = nsIp
             if (autoIp != null)

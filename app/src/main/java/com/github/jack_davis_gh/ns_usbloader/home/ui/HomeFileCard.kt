@@ -1,5 +1,6 @@
 package com.github.jack_davis_gh.ns_usbloader.home.ui
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -30,7 +31,7 @@ fun HomeFileCard(
         Row(modifier = Modifier.padding(10.dp),
             verticalAlignment = Alignment.CenterVertically) {
 
-            if (file.isSelected) {
+            AnimatedVisibility(file.isSelected) {
                 Checkbox(
                     modifier = Modifier.size(height = 20.dp, width = 30.dp)
                         .padding(end = 10.dp),

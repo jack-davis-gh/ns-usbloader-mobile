@@ -44,8 +44,8 @@ class CommunicationWorker(
         try {
             scope.launch {
                 when(proto) {
-                    Protocol.TinfoilNET -> tinfoilNet.run(files, nsIp, port)
-                    Protocol.TinfoilUSB -> tinfoilUsb.run(files, channel)
+                    Protocol.Network -> tinfoilNet.run(files, nsIp, port)
+                    Protocol.USB -> tinfoilUsb.run(files, channel)
                 }
             }
 

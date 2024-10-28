@@ -11,7 +11,7 @@ import me.tatarka.inject.annotations.Inject
 class AppViewModel(
     settingsStore: SettingsStore
 ): ViewModel() {
-    val theme = settingsStore.settings
-        .map { it.appTheme }
+    val theme = settingsStore.appSettings
+        .map { it.theme }
         .stateIn(viewModelScope, 0)
 }

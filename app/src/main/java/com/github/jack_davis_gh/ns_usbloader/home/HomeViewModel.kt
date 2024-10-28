@@ -45,9 +45,9 @@ class HomeViewModel(
         }
     }.stateIn(viewModelScope, emptyList())
 
-    private val activeProtocol = settingsStore.settings
+    private val activeProtocol = settingsStore.appSettings
         .map { it.activeProto }
-        .stateIn(viewModelScope, Protocol.TinfoilUSB)
+        .stateIn(viewModelScope, Protocol.USB)
 
     val state = combine(files, activeFiles, activeProtocol) { files, activeFiles, activeProtocol ->
         HomeScreenState.Success(
@@ -88,7 +88,7 @@ class HomeViewModel(
         override fun onUploadFileClicked() {
             viewModelScope.launch {
                 val files = files.firstOrNull() ?: return@launch // TODO Error State
-                val settings = settingsStore.settings.firstOrNull() ?: return@launch
+                val settings = settingsStore.appSettings.firstOrNull() ?: return@launch
 
                 val activeNsFiles = files.filter { it.name in activeFiles.value }
 
@@ -106,7 +106,7 @@ class HomeViewModel(
                     .build()
 
                 val request = when (settings.activeProto) {
-                    Protocol.TinfoilNET -> {
+                    Protocol.Network -> {
                         val constraints = Constraints.Builder()
                             .setRequiredNetworkType(NetworkType.UNMETERED)
                             .build()
@@ -116,12 +116,12 @@ class HomeViewModel(
                             .setConstraints(constraints)
                     }
 
-                    Protocol.TinfoilUSB -> OneTimeWorkRequestBuilder<CommunicationWorker>()
+                    Protocol.USB -> OneTimeWorkRequestBuilder<CommunicationWorker>()
                         .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
 
                 }.setInputData(inputData).build()
 
-                if (settings.activeProto == Protocol.TinfoilNET || (settings.activeProto == Protocol.TinfoilUSB && usbManager.getNs() != null)) {
+                if (settings.activeProto == Protocol.Network || (settings.activeProto == Protocol.USB && usbManager.getNs() != null)) {
                     workManager.cancelAllWork()
                     workManager.enqueueUniqueWork(
                         "Ns Transfer",
